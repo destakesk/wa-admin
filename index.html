@@ -112,6 +112,7 @@
     <div class="abar">
       <div class="row1"><h1>Links</h1><span class="who"><span id="who-email"></span> · <a id="logout">sign out</a></span></div>
       <input class="search" id="search" type="search" placeholder="Search number or link…" autocomplete="off">
+      <label class="chk" style="margin-top:8px;font-size:12px"><input type="checkbox" id="show-hidden"> Show hidden links</label>
       <div class="abtns"><button id="new-btn">+ New link</button><button id="tpl-btn">Templates</button></div>
     </div>
     <div class="filters">
@@ -162,6 +163,7 @@ var TOKKEY="wa_admin_tok";
 var tok=JSON.parse(localStorage.getItem(TOKKEY)||"null");
 var SITES=[], TPLS=[], CLICKS={}, CUR=null;
 var F={q:"",brand:null,platform:null,lang:null};
+var SHOW_HIDDEN=false;
 var BRANDS=["Istanbul Care","Estemoon Clinic","Royal Hair","Albania Hairclinic","Dental Albania","Punta Cana / New York","Jobs"];
 var PLATS=["Meta","Google Ads","TikTok","Web Organik","İş İlanı"];
 var PLATLBL={"Meta":"Meta","Google Ads":"Google","TikTok":"TikTok","Web Organik":"Web","İş İlanı":"Jobs"};
@@ -197,6 +199,7 @@ function renderChips(){
 
 /* list grouped by brand */
 function match(s){
+  if(s.hidden&&!SHOW_HIDDEN)return false;
   if(F.brand&&s.brand!==F.brand)return false;
   if(F.platform&&s.platform!==F.platform)return false;
   if(F.lang&&s.lang!==F.lang)return false;
@@ -342,6 +345,7 @@ function doLogout(){clearTok();location.reload();}
 document.getElementById("lform").addEventListener("submit",function(e){e.preventDefault();var btn=document.getElementById("l-btn"),err=document.getElementById("l-err");btn.disabled=true;err.textContent="";login(document.getElementById("l-email").value.trim(),document.getElementById("l-pass").value).then(t=>{saveTok(t);showApp(t.user&&t.user.email);}).catch(e=>{btn.disabled=false;err.textContent=e.message;});});
 document.getElementById("logout").onclick=doLogout;
 document.getElementById("search").addEventListener("input",function(){F.q=this.value;renderList();});
+document.getElementById("show-hidden").addEventListener("change",function(){SHOW_HIDDEN=this.checked;renderList();});
 document.getElementById("new-btn").onclick=openNew;
 document.getElementById("nl-close").onclick=()=>document.getElementById("new-modal").classList.remove("on");
 document.getElementById("nl-create").onclick=createLink;
