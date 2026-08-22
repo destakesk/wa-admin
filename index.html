@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WA Router — Yönetim</title>
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    color-scheme: light;
+    --page:#f6faf7; --surface:#fff; --ink:#111814; --ink-2:#4b5a51; --muted:#7e8b83;
+    --border:rgba(17,24,20,.12); --hair:rgba(17,24,20,.07);
+    --accent:#178a56; --accent-soft:rgba(23,138,86,.10); --accent-ink:#0e6b41;
+    --ok:#0ca30c; --err:#c0392b; --hit:#b45309; --hit-bg:rgba(217,119,6,.14);
+  }
+  @media (prefers-color-scheme: dark) { :root {
+    color-scheme: dark;
+    --page:#0e1310; --surface:#161d18; --ink:#eef4f0; --ink-2:#b4c1b8; --muted:#7e8b83;
+    --border:rgba(238,244,240,.14); --hair:rgba(238,244,240,.07);
+    --accent:#2fc47c; --accent-soft:rgba(47,196,124,.13); --accent-ink:#59d495;
+    --ok:#2fc47c; --err:#e66767; --hit:#f0a34c; --hit-bg:rgba(240,163,76,.16); } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--ink);
+         font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:15px; }
+  .mono { font-family:ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums; }
+  input,select,textarea,button { font:inherit; }
+  /* login */
+  #login { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .lbox { background:var(--surface); border:1px solid var(--border); border-radius:14px;
+          padding:28px; width:100%; max-width:360px; }
+  .lbox h1 { font-size:18px; margin:0 0 4px; }
+  .lbox p { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  .lbox label { display:block; font-size:12px; color:var(--ink-2); font-weight:600; margin:12px 0 4px; }
+  .lbox input { width:100%; background:var(--page); color:var(--ink);
+                border:1px solid var(--border); border-radius:9px; padding:10px 12px; }
+  .lbox input:focus { outline:2px solid var(--accent); border-color:transparent; }
+  .lbox button { width:100%; margin-top:18px; background:var(--accent); color:#fff;
+                 border:none; border-radius:9px; padding:11px; font-weight:600; cursor:pointer; }
+  .lbox button:disabled { opacity:.6; cursor:default; }
+  .lerr { color:var(--err); font-size:13px; margin-top:12px; min-height:16px; }
+  /* app */
+  #app { display:none; grid-template-columns:300px 1fr; min-height:100vh; }
+  aside { border-right:1px solid var(--hair); background:var(--surface); display:flex; flex-direction:column; max-height:100vh; }
+  .abar { padding:14px 16px 10px; border-bottom:1px solid var(--hair); }
+  .abar .row1 { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .abar h1 { font-size:15px; margin:0; }
+  .who { font-size:11px; color:var(--muted); }
+  .abar .who a { color:var(--accent-ink); cursor:pointer; text-decoration:underline; }
+  .abar input.search { width:100%; margin-top:10px; background:var(--page); color:var(--ink);
+    border:1px solid var(--border); border-radius:9px; padding:8px 11px; }
+  .abar input.search:focus { outline:2px solid var(--accent); border-color:transparent; }
+  .newbtn { width:100%; margin-top:8px; background:var(--accent-soft); color:var(--accent-ink);
+    border:1px solid var(--accent); border-radius:9px; padding:8px; font-weight:600; cursor:pointer; }
+  .slist { overflow:auto; flex:1; }
+  .sitem { padding:8px 16px; cursor:pointer; border-left:3px solid transparent;
+           display:flex; justify-content:space-between; gap:8px; font-size:14px; }
+  .sitem:hover { background:var(--accent-soft); }
+  .sitem.on { border-left-color:var(--accent); background:var(--accent-soft); }
+  .sitem .cnt { color:var(--muted); font-size:12px; white-space:nowrap; }
+  .sitem .lock { color:var(--muted); }
+  main { padding:22px 26px; overflow:auto; max-height:100vh; }
+  .mwrap { max-width:640px; }
+  .url { font-size:13px; }
+  .url a { color:var(--accent-ink); text-decoration:none; }
+  label.f { display:block; font-size:12px; color:var(--ink-2); font-weight:600; margin:16px 0 4px; }
+  .field { width:100%; background:var(--surface); color:var(--ink);
+    border:1px solid var(--border); border-radius:9px; padding:9px 11px; }
+  .field:focus { outline:2px solid var(--accent); border-color:transparent; }
+  input[readonly].field { color:var(--muted); background:transparent; }
+  .rowf { display:flex; gap:14px; } .rowf>div { flex:1; }
+  .numwrap { display:flex; gap:14px; } .numwrap textarea { flex:1; min-height:170px; }
+  .numinfo { width:230px; font-size:12px; color:var(--ink-2); line-height:1.6; }
+  .numinfo .dup { color:var(--err); } .clk { color:var(--muted); font-size:12px; margin-top:6px; }
+  .chk { display:flex; align-items:center; gap:8px; margin-top:16px; font-size:13px; color:var(--ink-2); }
+  .chk input { width:auto; }
+  .btns { display:flex; gap:10px; margin-top:22px; flex-wrap:wrap; }
+  .btns button { border-radius:9px; padding:9px 16px; cursor:pointer;
+    border:1px solid var(--border); background:var(--surface); color:var(--ink); }
+  .btns .primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btns .danger { color:var(--err); }
+  .btns button:disabled { opacity:.5; cursor:default; }
+  .msg { margin-top:14px; font-size:13px; min-height:18px; white-space:pre-wrap; }
+  .msg.ok { color:var(--ok); } .msg.err { color:var(--err); }
+  .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--page); font-size:13px; padding:9px 16px;
+    border-radius:9px; opacity:0; pointer-events:none; transition:opacity .18s; z-index:30; }
+  .toast.show { opacity:1; }
+  .empty { color:var(--muted); text-align:center; padding:60px 0; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="lbox" id="lform">
+    <h1>WA Router — Yönetim</h1>
+    <p>Ekip girişi. Numaraları ve linkleri buradan yönetin.</p>
+    <label>E-posta</label>
+    <input id="l-email" type="email" autocomplete="username" required>
+    <label>Şifre</label>
+    <input id="l-pass" type="password" autocomplete="current-password" required>
+    <button type="submit" id="l-btn">Giriş yap</button>
+    <div class="lerr" id="l-err"></div>
+  </form>
+</div>
+
+<div id="app">
+  <aside>
+    <div class="abar">
+      <div class="row1"><h1>Linkler</h1><span class="who"><span id="who-email"></span>
+        · <a id="logout">çıkış</a></span></div>
+      <input class="search" id="search" type="search" placeholder="Numara veya link ara…" autocomplete="off">
+      <button class="newbtn" id="new-btn">+ Yeni link</button>
+    </div>
+    <div class="slist" id="slist"></div>
+  </aside>
+  <main><div class="mwrap" id="editor"></div></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var REST = "https://zmdbafqjtqlenleocukz.supabase.co/rest/v1";
+var AUTH = "https://zmdbafqjtqlenleocukz.supabase.co/auth/v1";
+var FN   = "https://zmdbafqjtqlenleocukz.supabase.co/functions/v1";
+var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptZGJhZnFqdHFsZW5sZW9jdWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzA0NDMsImV4cCI6MjA5MzA0NjQ0M30.bVUMLSwi37WlltqdZYVIkpIJUHgXnECYvSaj3C4iQtE";
+var TOKKEY = "wa_admin_tok";
+var tok = JSON.parse(localStorage.getItem(TOKKEY) || "null");
+var SITES = [], CUR = null, CLICKS = {};
+var BRANDS = ["Istanbul Care","Estemoon Clinic","Royal Hair","Albania Hairclinic",
+              "Dental Albania","Punta Cana / New York","Jobs"];
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function digits(s){return String(s).replace(/\D/g,"");}
+var toastT; function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1600);}
+
+/* ---- auth ---- */
+function saveTok(t){tok=t;localStorage.setItem(TOKKEY,JSON.stringify(t));}
+function clearTok(){tok=null;localStorage.removeItem(TOKKEY);}
+
+function login(email,pass){
+  return fetch(AUTH+"/token?grant_type=password",{method:"POST",
+    headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({email:email,password:pass})})
+    .then(async r=>{var j=await r.json(); if(!r.ok) throw new Error(j.error_description||j.msg||"Giriş başarısız"); return j;});
+}
+function refresh(){
+  if(!tok||!tok.refresh_token) return Promise.reject();
+  return fetch(AUTH+"/token?grant_type=refresh_token",{method:"POST",
+    headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({refresh_token:tok.refresh_token})})
+    .then(async r=>{var j=await r.json(); if(!r.ok) throw new Error("refresh"); saveTok(j); return j;});
+}
+function authFetch(path,opts,retry){
+  opts=opts||{}; opts.headers=Object.assign({apikey:ANON,
+    Authorization:"Bearer "+(tok&&tok.access_token)},opts.headers||{});
+  return fetch((path[0]==="/"?REST:"")+path,opts).then(r=>{
+    if(r.status===401 && !retry) return refresh().then(()=>authFetch(path,opts,true), ()=>{doLogout();throw new Error("Oturum doldu");});
+    return r;
+  });
+}
+
+/* ---- data ---- */
+function loadSites(){
+  return authFetch("/wa_sites?select=slug,title,lang,message,mode,numbers,hidden,brand,platform&order=brand,slug")
+    .then(r=>r.json()).then(rows=>{SITES=rows;});
+}
+function loadClicks(){
+  return fetch(REST+"/rpc/wa_counts",{method:"POST",headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},body:"{}"})
+    .then(r=>r.json()).then(rows=>{CLICKS={};(rows||[]).forEach(r=>CLICKS[r.site]=r.n+1);}).catch(()=>{});
+}
+function siteKey(s){return "destakesk.github.io/"+s.slug+"/";}
+
+/* ---- UI ---- */
+function renderList(){
+  var q=document.getElementById("search").value.trim().toLowerCase(), qd=digits(q);
+  var shown=SITES.filter(s=>{
+    if(!q) return true;
+    if(qd.length>=4 && s.numbers.some(n=>String(n).indexOf(qd)!==-1)) return true;
+    return s.slug.toLowerCase().indexOf(q)!==-1 || (s.brand||"").toLowerCase().indexOf(q)!==-1;
+  });
+  var html="";
+  BRANDS.concat(["Diğer"]).forEach(function(b){
+    var rs=shown.filter(s=>(s.brand||"Diğer")===b);
+    if(!rs.length) return;
+    rs.forEach(function(s){
+      var idx=SITES.indexOf(s), t=CLICKS[siteKey(s)]||0;
+      html+='<div class="sitem'+(CUR===idx?" on":"")+'" data-i="'+idx+'"><span>'+
+        esc(s.slug)+(s.hidden?' <span class="lock">🔒</span>':'')+
+        '</span><span class="cnt">'+s.numbers.length+' no · '+t+' tık</span></div>';
+    });
+  });
+  document.getElementById("slist").innerHTML=html||'<div class="empty">Eşleşen link yok.</div>';
+}
+
+function selectSite(i){
+  CUR=i; renderList();
+  var s=SITES[i], ck=CLICKS[siteKey(s)]||0;
+  var msgs=[...new Set(SITES.map(x=>x.message))];
+  document.getElementById("editor").innerHTML=
+    '<div class="url">🔗 <a target="_blank" href="https://destakesk.github.io/'+esc(s.slug)+'/">https://destakesk.github.io/'+esc(s.slug)+'/</a></div>'+
+    '<div class="clk">Tıklama (toplam): <b>'+ck+'</b></div>'+
+    '<div class="rowf"><div><label class="f">Link adı (repo)</label>'+
+      '<input class="field" id="f-slug" value="'+esc(s.slug)+'" readonly></div>'+
+    '<div><label class="f">Dil</label><select class="field" id="f-lang">'+
+      ["en","fr","de","es","it","sq","ru","nl","tr"].map(l=>'<option'+(s.lang===l?" selected":"")+'>'+l+'</option>').join("")+
+      '</select></div>'+
+    '<div><label class="f">Dağıtım</label><select class="field" id="f-mode">'+
+      ["round-robin","random","weighted"].map(m=>'<option'+(s.mode===m?" selected":"")+'>'+m+'</option>').join("")+
+      '</select></div></div>'+
+    '<label class="f">Başlık</label><input class="field" id="f-title" value="'+esc(s.title)+'">'+
+    '<label class="f">Hazır mesaj</label><textarea class="field" id="f-msg" rows="2">'+esc(s.message)+'</textarea>'+
+    '<div class="clk">Şablondan kopyala: <select class="field" style="width:auto;display:inline-block" onchange="if(this.value)document.getElementById(\'f-msg\').value=this.value">'+
+      '<option value="">—</option>'+msgs.map(m=>'<option>'+esc(m)+'</option>').join("")+'</select></div>'+
+    '<label class="f">Numaralar (her satıra bir tane)</label>'+
+    '<div class="numwrap"><textarea class="field mono" id="f-nums" oninput="numInfo()">'+esc(s.numbers.join("\n"))+'</textarea>'+
+      '<div class="numinfo" id="numinfo"></div></div>'+
+    '<div class="chk"><input type="checkbox" id="f-hidden"'+(s.hidden?" checked":"")+'> 🔒 Gizli (panel/raporda görünmez)</div>'+
+    '<div class="btns"><button class="primary" id="save">Kaydet (anında canlı)</button>'+
+      '<button class="danger" id="del">Sil</button></div>'+
+    '<div class="msg" id="msg"></div>';
+  numInfo();
+  document.getElementById("save").onclick=saveSite;
+  document.getElementById("del").onclick=delSite;
+}
+
+function numInfo(){
+  var raw=document.getElementById("f-nums").value.split("\n").map(digits).filter(Boolean);
+  var uniq=[...new Set(raw)], dups=raw.filter((n,i)=>raw.indexOf(n)!==i);
+  var s=SITES[CUR];
+  var shared={};
+  uniq.forEach(n=>SITES.forEach(x=>{if(x.slug!==s.slug&&x.numbers.includes(n))(shared[n]=shared[n]||[]).push(x.slug);}));
+  var h="<b>"+uniq.length+"</b> numara";
+  if(dups.length) h+='<br><span class="dup">Duplike: '+[...new Set(dups)].join(", ")+'</span>';
+  var sh=Object.entries(shared);
+  if(sh.length) h+='<br>Başka linklerde de:<br>'+sh.map(([n,r])=>n+" → "+r.join(", ")).join("<br>");
+  document.getElementById("numinfo").innerHTML=h;
+}
+
+function collect(){
+  return {
+    title:document.getElementById("f-title").value.trim(),
+    lang:document.getElementById("f-lang").value,
+    mode:document.getElementById("f-mode").value,
+    message:document.getElementById("f-msg").value.trim(),
+    numbers:[...new Set(document.getElementById("f-nums").value.split("\n").map(digits).filter(Boolean))],
+    hidden:document.getElementById("f-hidden").checked
+  };
+}
+function say(t,cls){var m=document.getElementById("msg");m.textContent=t;m.className="msg "+(cls||"");}
+
+function saveSite(){
+  var s=SITES[CUR], body=collect();
+  if(!body.numbers.length){say("En az bir numara gerekli.","err");return;}
+  if(!body.message){say("Mesaj boş olamaz.","err");return;}
+  var btn=document.getElementById("save"); btn.disabled=true; say("Kaydediliyor…");
+  authFetch("/wa_sites?slug=eq."+encodeURIComponent(s.slug),{method:"PATCH",
+    headers:{"Content-Type":"application/json",Prefer:"return=representation"},
+    body:JSON.stringify(body)}).then(async r=>{
+      var j=await r.json(); btn.disabled=false;
+      if(!r.ok) throw new Error(j.message||j.hint||"Kayıt reddedildi");
+      Object.assign(s,body); renderList();
+      say("Kaydedildi ✓ — değişiklik linklerde anında canlı.","ok"); toast("Kaydedildi");
+    }).catch(e=>{btn.disabled=false; say(e.message,"err");});
+}
+
+function delSite(){
+  var s=SITES[CUR];
+  if(!confirm("'"+s.slug+"' yönetimden silinsin mi?\n\nNot: GitHub'daki yayınlanmış sayfa çalışmaya devam eder (gömülü yedek numaralarla). Tamamen kapatmak için gizle ya da numaraları boşalt.")) return;
+  authFetch("/wa_sites?slug=eq."+encodeURIComponent(s.slug),{method:"DELETE"}).then(r=>{
+    if(!r.ok) throw new Error("Silinemedi");
+    SITES.splice(CUR,1); CUR=null; document.getElementById("editor").innerHTML=""; renderList(); toast("Silindi");
+  }).catch(e=>toast(e.message));
+}
+
+function newSite(){
+  var slug=prompt("Yeni link adı (küçük harf, rakam, tire) — ör. istanbulcare-tiktok-greek:");
+  if(!slug) return;
+  slug=slug.trim().toLowerCase();
+  if(!/^[a-z0-9][a-z0-9-]{1,60}$/.test(slug)){toast("Geçersiz link adı");return;}
+  if(SITES.some(s=>s.slug===slug)){toast("Bu link zaten var");return;}
+  var title=prompt("Başlık:","Istanbul Care")||"Istanbul Care";
+  var lang=prompt("Dil kodu (en/fr/de/es/it/sq/ru):","en")||"en";
+  var message=prompt("Hazır mesaj:","Hello, can I get information about hair transplantation? Ref: Meta Ad")||"";
+  var numbers=(prompt("Numaralar (virgül veya boşlukla):","")||"").split(/[,\s]+/).map(digits).filter(Boolean);
+  if(!numbers.length){toast("En az bir numara gerekli");return;}
+  toast("Oluşturuluyor… (GitHub Pages 1-2 dk)");
+  authFetch(FN+"/wa-create",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({slug,title,lang,message,numbers})}).then(async r=>{
+      var j=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(j.error||("Oluşturulamadı ("+r.status+")"));
+      await loadSites(); renderList();
+      var i=SITES.findIndex(s=>s.slug===slug); if(i>=0) selectSite(i);
+      toast("Link oluşturuldu ✓");
+    }).catch(e=>alert("Yeni link hatası: "+e.message+"\n\n(Yeni link oluşturma sunucu fonksiyonu gerektirir; kurulu değilse numara yönetimi yine çalışır.)"));
+}
+
+/* ---- boot ---- */
+function showApp(email){
+  document.getElementById("login").style.display="none";
+  document.getElementById("app").style.display="grid";
+  document.getElementById("who-email").textContent=email||"";
+  Promise.all([loadSites(),loadClicks()]).then(()=>{renderList(); if(SITES.length) selectSite(0);})
+    .catch(e=>toast("Veri alınamadı: "+e.message));
+}
+function doLogout(){clearTok();location.reload();}
+
+document.getElementById("lform").addEventListener("submit",function(e){
+  e.preventDefault();
+  var btn=document.getElementById("l-btn"), err=document.getElementById("l-err");
+  btn.disabled=true; err.textContent="";
+  login(document.getElementById("l-email").value.trim(),document.getElementById("l-pass").value)
+    .then(t=>{saveTok(t); showApp(t.user&&t.user.email);})
+    .catch(e=>{btn.disabled=false; err.textContent=e.message;});
+});
+document.getElementById("logout").onclick=doLogout;
+document.getElementById("new-btn").onclick=newSite;
+document.getElementById("search").addEventListener("input",renderList);
+document.addEventListener("click",function(e){var it=e.target.closest(".sitem");if(it)selectSite(+it.dataset.i);});
+
+// otomatik oturum
+if(tok&&tok.access_token){
+  fetch(AUTH+"/user",{headers:{apikey:ANON,Authorization:"Bearer "+tok.access_token}})
+    .then(r=>r.ok?r.json():refresh().then(()=>fetch(AUTH+"/user",{headers:{apikey:ANON,Authorization:"Bearer "+tok.access_token}}).then(r=>r.json())))
+    .then(u=>showApp(u&&u.email)).catch(()=>{clearTok();});
+}
+</script>
+</body>
+</html>
