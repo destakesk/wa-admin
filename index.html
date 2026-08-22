@@ -207,9 +207,53 @@ function loadSites(){return authFetch("/wa_sites?select=slug,title,lang,message,
 function loadTpls(){return fetch(REST+"/wa_templates?select=id,label,lang,message&order=lang,label",{headers:{apikey:ANON}}).then(r=>r.json()).then(rows=>{TPLS=rows||[];});}
 function loadClicks(){return fetch(REST+"/rpc/wa_counts",{method:"POST",headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},body:"{}"}).then(r=>r.json()).then(rows=>{CLICKS={};(rows||[]).forEach(r=>CLICKS[r.site]=r.n+1);}).catch(()=>{});}
 function siteKey(s){return "destakesk.github.io/"+s.slug+"/";}
+var HISTMAP={};
 function loadHistory(slug){
-  var url="/wa_audit?select=at,actor,slug,action,changes&order=at.desc&limit="+(slug?50:120)+(slug?("&slug=eq."+encodeURIComponent(slug)):"");
-  return authFetch(url).then(r=>r.json());
+  var url="/wa_audit?select=id,at,actor,slug,action,changes&order=at.desc&limit="+(slug?50:120)+(slug?("&slug=eq."+encodeURIComponent(slug)):"");
+  return authFetch(url).then(r=>r.json()).then(rows=>{(rows||[]).forEach(r=>HISTMAP[r.id]=r);return rows;});
+}
+function brandOf(slug,title){
+  if(slug==="jobs"||slug==="jobs-api")return "Jobs";
+  if(slug.indexOf("trapianto")===0||slug.indexOf("albaniahair")===0)return "Albania Hairclinic";
+  if(slug.indexOf("dental")===0)return "Dental Albania";
+  if(slug.indexOf("puntacana")===0||slug.indexOf("newyork")===0)return "Punta Cana / New York";
+  if((title||"").indexOf("Royal Hair")===0)return "Royal Hair";
+  return title;
+}
+function platformOf(slug,msg){
+  var m=(msg||"").toLowerCase();
+  if(slug.indexOf("-tiktok-")!==-1)return "TikTok";
+  if(slug.indexOf("-web-")!==-1||m.indexOf("web site")!==-1)return "Web Organik";
+  if(slug.indexOf("google")!==-1||m.indexOf("google")!==-1)return "Google Ads";
+  if(slug==="jobs"||slug==="jobs-api")return "İş İlanı";
+  return "Meta";
+}
+function doRevert(id){
+  var r=HISTMAP[id]; if(!r)return;
+  if(r.action==="update"){
+    var patch={}, fields=Object.keys(r.changes);
+    fields.forEach(k=>{patch[k]=r.changes[k].from;});
+    if(!confirm("Revert this change on '"+r.slug+"'?\n\nFields ("+fields.join(", ")+") will be restored to their previous values. This is live immediately."))return;
+    authFetch("/wa_sites?slug=eq."+encodeURIComponent(r.slug),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)})
+      .then(res=>{if(!res.ok)throw new Error("Revert failed");return refreshAfterRevert(r.slug);}).then(()=>toast("Reverted ✓")).catch(e=>toast(e.message));
+  } else if(r.action==="delete"){
+    var c=r.changes;
+    var row={slug:r.slug,title:c.title||r.slug,lang:c.lang||"en",mode:c.mode||"round-robin",message:c.message||"",numbers:c.numbers||[],hidden:!!c.hidden,brand:brandOf(r.slug,c.title||""),platform:platformOf(r.slug,c.message||"")};
+    if(!confirm("Restore deleted link '"+r.slug+"'?\n\nIt will reappear in the panel with "+(row.numbers.length)+" number(s). (The GitHub page already exists.)"))return;
+    authFetch("/wa_sites",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(row)})
+      .then(res=>{if(!res.ok)throw new Error("Restore failed (maybe it already exists)");return refreshAfterRevert(r.slug);}).then(()=>toast("Restored ✓")).catch(e=>toast(e.message));
+  } else {
+    // create'i geri almak = linki panelden kaldir
+    if(!confirm("Undo creation of '"+r.slug+"'?\n\nThis removes it from the panel (the GitHub page keeps working with embedded numbers)."))return;
+    authFetch("/wa_sites?slug=eq."+encodeURIComponent(r.slug),{method:"DELETE"})
+      .then(()=>refreshAfterRevert(r.slug)).then(()=>toast("Removed ✓")).catch(e=>toast(e.message));
+  }
+}
+function refreshAfterRevert(slug){
+  return loadSites().then(()=>{renderChips();renderList();
+    var i=SITES.findIndex(s=>s.slug===slug); if(i>=0)selectSite(i); else {CUR=null;document.getElementById("editor").innerHTML='<div class="empty">Select a link on the left.</div>';}
+    if(document.getElementById("hist-modal").classList.contains("on"))document.getElementById("hist-btn").click();
+  });
 }
 function fmtWhen(iso){
   try{var d=new Date(iso);return d.toLocaleString("en-GB",{timeZone:"Europe/Istanbul",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});}catch(e){return iso;}
@@ -232,10 +276,12 @@ function recHtml(r){
   }else if(r.action==="delete"){
     var n2=(r.changes.numbers||[]); body="deleted · was "+n2.length+" number(s)";
   }
+  var rev='<button class="linkbtn revert" data-id="'+r.id+'">'+(r.action==="delete"?"Restore":r.action==="create"?"Undo":"Revert")+'</button>';
   return '<div class="hrec"><div class="hh"><span class="hact '+r.action+'">'+r.action+'</span>'+
     '<span class="hslug">'+esc(r.slug)+'</span><span class="hwho">by '+esc(r.actor)+'</span>'+
     '<span class="hwhen">'+fmtWhen(r.at)+'</span></div>'+
-    (body?'<div class="hbody">'+body+'</div>':'')+'</div>';
+    (body?'<div class="hbody">'+body+'</div>':'')+
+    '<div style="margin-top:6px">'+rev+'</div></div>';
 }
 
 /* filters */
@@ -419,7 +465,10 @@ document.getElementById("hist-btn").onclick=function(){
 };
 document.getElementById("hist-close").onclick=()=>document.getElementById("hist-modal").classList.remove("on");
 document.getElementById("tpl-add").onclick=function(){var l=document.getElementById("nt-label").value.trim(),la=document.getElementById("nt-lang").value,m=document.getElementById("nt-msg").value.trim();if(!l||!m){toast("Label and message required");return;}addTemplate(l,la,m).then(()=>{document.getElementById("nt-label").value="";document.getElementById("nt-msg").value="";renderTplModal();toast("Template added");});};
-document.addEventListener("click",function(e){var it=e.target.closest(".sitem");if(it)selectSite(+it.dataset.i);var ov=e.target.closest(".overlay");if(ov&&e.target===ov)ov.classList.remove("on");});
+document.addEventListener("click",function(e){
+  var rv=e.target.closest(".revert");if(rv){e.preventDefault();doRevert(+rv.dataset.id);return;}
+  var it=e.target.closest(".sitem");if(it)selectSite(+it.dataset.i);
+  var ov=e.target.closest(".overlay");if(ov&&e.target===ov)ov.classList.remove("on");});
 
 if(tok&&tok.access_token){fetch(AUTH+"/user",{headers:{apikey:ANON,Authorization:"Bearer "+tok.access_token}}).then(r=>r.ok?r.json():refresh().then(()=>fetch(AUTH+"/user",{headers:{apikey:ANON,Authorization:"Bearer "+tok.access_token}}).then(r=>r.json()))).then(u=>showApp(u&&u.email)).catch(()=>{clearTok();});}
 </script>
