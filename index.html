@@ -143,7 +143,8 @@
   <div class="rowf"><div><label class="f">Link name (URL slug)</label><input class="field mono" id="nl-slug" placeholder="istanbulcare-tiktok-greek"></div>
     <div style="flex:0 0 110px"><label class="f">Language</label><select class="field" id="nl-lang"></select></div>
     <div style="flex:0 0 130px"><label class="f">Distribution</label><select class="field" id="nl-mode"></select></div></div>
-  <label class="f">Title</label><input class="field" id="nl-title" placeholder="Istanbul Care">
+  <div class="rowf"><div><label class="f">Title</label><input class="field" id="nl-title" placeholder="Istanbul Care"></div>
+    <div><label class="f">Brand / group</label><input class="field" id="nl-brand" list="brand-list" placeholder="Istanbul Care, Estemoon… or a new one"></div></div>
   <label class="f">Ready message</label>
   <div class="tplbar"><select class="field" id="nl-tpl"><option value="">— apply template —</option></select></div>
   <textarea class="field" id="nl-msg" rows="2" style="margin-top:8px"></textarea>
@@ -161,6 +162,7 @@
 </div></div>
 
 <div class="toast" id="toast"></div>
+<datalist id="brand-list"></datalist>
 
 <style>
   .hrec { border:1px solid var(--hair); border-radius:10px; padding:10px 12px; }
@@ -193,6 +195,14 @@ var LANGNAME={en:"English",fr:"French",de:"German",es:"Spanish",it:"Italian",sq:
 var ALL_LANGS=["en","fr","de","es","it","sq","ru","nl","tr"];
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function brandList(){
+  var known=BRANDS.filter(b=>SITES.some(s=>s.brand===b));
+  var extra=[...new Set(SITES.map(s=>s.brand).filter(b=>b&&BRANDS.indexOf(b)===-1))].sort();
+  return known.concat(extra);
+}
+function syncBrandData(){
+  document.getElementById("brand-list").innerHTML=brandList().map(b=>'<option value="'+esc(b)+'">').join("");
+}
 function digits(s){return String(s).replace(/\D/g,"");}
 var toastT; function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1700);}
 
@@ -290,7 +300,8 @@ function chip(row,label,val,key){var b=document.createElement("button");b.classN
 function renderChips(){
   var langs=[...new Set(SITES.map(s=>s.lang))];
   var rp=document.getElementById("f-platform");rp.innerHTML='<span class="flbl">Platform</span>';PLATS.forEach(p=>chip(rp,PLATLBL[p]||p,p,"platform"));
-  var rb=document.getElementById("f-brand");rb.innerHTML='<span class="flbl">Brand</span>';BRANDS.forEach(b=>chip(rb,b,b,"brand"));
+  var rb=document.getElementById("f-brand");rb.innerHTML='<span class="flbl">Brand</span>';brandList().forEach(b=>chip(rb,b,b,"brand"));
+  syncBrandData();
   var rl=document.getElementById("f-lang");rl.innerHTML='<span class="flbl">Language</span>';langs.forEach(l=>chip(rl,LANGNAME[l]||l,l,"lang"));
   var creators=[...new Set(SITES.map(s=>(s.created_by&&s.created_by!=="(system)")?s.created_by:null))];
   var real=creators.filter(Boolean).sort(), hasImported=creators.indexOf(null)!==-1;
@@ -316,8 +327,9 @@ function match(s){
   return s.slug.toLowerCase().indexOf(q)!==-1||(s.brand||"").toLowerCase().indexOf(q)!==-1;
 }
 function renderList(){
-  var shown=SITES.filter(match), html="", known=new Set(BRANDS);
-  BRANDS.concat(["Other"]).forEach(function(b){
+  var groups=brandList(), known=new Set(groups);
+  var shown=SITES.filter(match), html="";
+  groups.concat(["Other"]).forEach(function(b){
     var rs=shown.filter(s=> b==="Other"?!known.has(s.brand):s.brand===b);
     if(!rs.length)return;
     html+='<div class="ghead">'+esc(b)+' <span class="gc">· '+rs.length+'</span></div>';
@@ -350,7 +362,8 @@ function selectSite(i){
     '<div><label class="f">Language</label><select class="field" id="f-lang-sel">'+langOptions(s.lang)+'</select></div>'+
     '<div><label class="f">Distribution</label><select class="field" id="f-mode">'+
       ["round-robin","random","weighted"].map(m=>'<option'+(s.mode===m?" selected":"")+'>'+m+'</option>').join("")+'</select></div></div>'+
-    '<label class="f">Title</label><input class="field" id="f-title" value="'+esc(s.title)+'">'+
+    '<div class="rowf"><div><label class="f">Title</label><input class="field" id="f-title" value="'+esc(s.title)+'"></div>'+
+    '<div><label class="f">Brand / group</label><input class="field" id="ed-brand" list="brand-list" value="'+esc(s.brand||"")+'" placeholder="e.g. Istanbul Care — or a new brand"></div></div>'+
     '<label class="f">Ready message</label><textarea class="field" id="f-msg" rows="2">'+esc(s.message)+'</textarea>'+
     '<div class="tplbar"><select class="field" id="f-tpl"><option value="">— apply template —</option>'+tplOptionsFor(s.lang)+'</select>'+
       '<button class="linkbtn" id="save-tpl">Save current as template</button></div>'+
@@ -386,7 +399,7 @@ function numInfo(){
   if(sh.length)h+='<br>Also in other links:<br>'+sh.map(([n,r])=>n+" → "+r.join(", ")).join("<br>");
   document.getElementById("numinfo").innerHTML=h;
 }
-function collect(){return{title:document.getElementById("f-title").value.trim(),lang:document.getElementById("f-lang-sel").value,mode:document.getElementById("f-mode").value,message:document.getElementById("f-msg").value.trim(),numbers:[...new Set(document.getElementById("f-nums").value.split("\n").map(digits).filter(Boolean))],hidden:document.getElementById("f-hidden").checked};}
+function collect(){return{title:document.getElementById("f-title").value.trim(),lang:document.getElementById("f-lang-sel").value,mode:document.getElementById("f-mode").value,message:document.getElementById("f-msg").value.trim(),numbers:[...new Set(document.getElementById("f-nums").value.split("\n").map(digits).filter(Boolean))],hidden:document.getElementById("f-hidden").checked,brand:document.getElementById("ed-brand").value.trim()||null};}
 function say(t,cls){var m=document.getElementById("msg");m.textContent=t;m.className="msg "+(cls||"");}
 function saveSite(){
   var s=SITES[CUR], body=collect();
@@ -426,6 +439,7 @@ function openNew(){
   document.getElementById("nl-mode").innerHTML=["round-robin","random","weighted"].map(m=>'<option>'+m+'</option>').join("");
   document.getElementById("nl-tpl").innerHTML='<option value="">— apply template —</option>'+tplOptionsFor("en");
   document.getElementById("nl-slug").value="";document.getElementById("nl-title").value="";
+  document.getElementById("nl-brand").value="";
   document.getElementById("nl-msg").value="";document.getElementById("nl-nums").value="";
   document.getElementById("nl-msgline").textContent="";
   document.getElementById("new-modal").classList.add("on");
@@ -434,6 +448,7 @@ function createLink(){
   var slug=digits;var v=id=>document.getElementById(id).value;
   var slugv=v("nl-slug").trim().toLowerCase();
   var body={slug:slugv,title:v("nl-title").trim(),lang:v("nl-lang"),mode:v("nl-mode"),message:v("nl-msg").trim(),
+    brand:v("nl-brand").trim()||undefined,
     numbers:[...new Set(v("nl-nums").split("\n").map(digits).filter(Boolean))]};
   var line=document.getElementById("nl-msgline");
   if(!/^[a-z0-9][a-z0-9-]{1,60}$/.test(body.slug)){line.textContent="Invalid link name (lowercase, digits, hyphen).";line.className="msg err";return;}
