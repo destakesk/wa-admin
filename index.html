@@ -178,8 +178,9 @@ function renderList(){
     return s.slug.toLowerCase().indexOf(q)!==-1 || (s.brand||"").toLowerCase().indexOf(q)!==-1;
   });
   var html="";
+  var known=new Set(BRANDS);
   BRANDS.concat(["Diğer"]).forEach(function(b){
-    var rs=shown.filter(s=>(s.brand||"Diğer")===b);
+    var rs=shown.filter(s=> b==="Diğer" ? !known.has(s.brand) : s.brand===b);
     if(!rs.length) return;
     rs.forEach(function(s){
       var idx=SITES.indexOf(s), t=CLICKS[siteKey(s)]||0;
