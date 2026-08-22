@@ -119,6 +119,7 @@
       <div class="frow" id="f-platform"><span class="flbl">Platform</span></div>
       <div class="frow" id="f-brand"><span class="flbl">Brand</span></div>
       <div class="frow" id="f-lang"><span class="flbl">Language</span></div>
+      <div class="frow" id="f-creator"><span class="flbl">Creator</span></div>
     </div>
     <div class="slist" id="slist"></div>
   </aside>
@@ -182,7 +183,7 @@ var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 var TOKKEY="wa_admin_tok";
 var tok=JSON.parse(localStorage.getItem(TOKKEY)||"null");
 var SITES=[], TPLS=[], CLICKS={}, CUR=null;
-var F={q:"",brand:null,platform:null,lang:null};
+var F={q:"",brand:null,platform:null,lang:null,creator:null};
 var SHOW_HIDDEN=false;
 var BRANDS=["Istanbul Care","Estemoon Clinic","Royal Hair","Albania Hairclinic","Dental Albania","Punta Cana / New York","Jobs"];
 var PLATS=["Meta","Google Ads","TikTok","Web Organik","İş İlanı"];
@@ -291,6 +292,11 @@ function renderChips(){
   var rp=document.getElementById("f-platform");rp.innerHTML='<span class="flbl">Platform</span>';PLATS.forEach(p=>chip(rp,PLATLBL[p]||p,p,"platform"));
   var rb=document.getElementById("f-brand");rb.innerHTML='<span class="flbl">Brand</span>';BRANDS.forEach(b=>chip(rb,b,b,"brand"));
   var rl=document.getElementById("f-lang");rl.innerHTML='<span class="flbl">Language</span>';langs.forEach(l=>chip(rl,LANGNAME[l]||l,l,"lang"));
+  var creators=[...new Set(SITES.map(s=>(s.created_by&&s.created_by!=="(system)")?s.created_by:null))];
+  var real=creators.filter(Boolean).sort(), hasImported=creators.indexOf(null)!==-1;
+  var rc=document.getElementById("f-creator");rc.innerHTML='<span class="flbl">Creator</span>';
+  real.forEach(em=>chip(rc,em.split("@")[0],em,"creator"));
+  if(hasImported)chip(rc,"Imported","__imported__","creator");
 }
 
 /* list grouped by brand */
@@ -299,6 +305,11 @@ function match(s){
   if(F.brand&&s.brand!==F.brand)return false;
   if(F.platform&&s.platform!==F.platform)return false;
   if(F.lang&&s.lang!==F.lang)return false;
+  if(F.creator){
+    var imported=!s.created_by||s.created_by==="(system)";
+    if(F.creator==="__imported__"){ if(!imported)return false; }
+    else if(s.created_by!==F.creator)return false;
+  }
   var q=F.q.trim().toLowerCase(),qd=digits(q);
   if(!q)return true;
   if(qd.length>=4&&s.numbers.some(n=>String(n).indexOf(qd)!==-1))return true;
