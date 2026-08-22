@@ -203,7 +203,7 @@ function refresh(){if(!tok||!tok.refresh_token)return Promise.reject();return fe
 function authFetch(path,opts,retry){opts=opts||{};opts.headers=Object.assign({apikey:ANON,Authorization:"Bearer "+(tok&&tok.access_token)},opts.headers||{});return fetch((path[0]==="/"?REST:"")+path,opts).then(r=>{if(r.status===401&&!retry)return refresh().then(()=>authFetch(path,opts,true),()=>{doLogout();throw new Error("Session expired");});return r;});}
 
 /* data */
-function loadSites(){return authFetch("/wa_sites?select=slug,title,lang,message,mode,numbers,hidden,brand,platform&order=brand,slug").then(r=>r.json()).then(rows=>{SITES=rows;});}
+function loadSites(){return authFetch("/wa_sites?select=slug,title,lang,message,mode,numbers,hidden,brand,platform,created_by,created_at&order=brand,slug").then(r=>r.json()).then(rows=>{SITES=rows;});}
 function loadTpls(){return fetch(REST+"/wa_templates?select=id,label,lang,message&order=lang,label",{headers:{apikey:ANON}}).then(r=>r.json()).then(rows=>{TPLS=rows||[];});}
 function loadClicks(){return fetch(REST+"/rpc/wa_counts",{method:"POST",headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},body:"{}"}).then(r=>r.json()).then(rows=>{CLICKS={};(rows||[]).forEach(r=>CLICKS[r.site]=r.n+1);}).catch(()=>{});}
 function siteKey(s){return "destakesk.github.io/"+s.slug+"/";}
@@ -334,6 +334,7 @@ function selectSite(i){
     '<div class="url">🔗 <a target="_blank" href="https://destakesk.github.io/'+esc(s.slug)+'/">https://destakesk.github.io/'+esc(s.slug)+'/</a>'+
       '<span class="pill">'+esc(s.brand||"")+'</span><span class="pill">'+esc(PLATLBL[s.platform]||s.platform||"")+'</span></div>'+
     '<div class="clk">Clicks (total): <b>'+ck+'</b></div>'+
+    '<div class="clk">'+(s.created_by&&s.created_by!=="(system)"?("Created by <b>"+esc(s.created_by)+"</b>"+(s.created_at?" · "+fmtWhen(s.created_at):"")):"Imported (before change tracking)")+'</div>'+
     '<div class="rowf"><div><label class="f">Link name (repo)</label><input class="field mono" id="f-slug" value="'+esc(s.slug)+'" readonly></div>'+
     '<div><label class="f">Language</label><select class="field" id="f-lang-sel">'+langOptions(s.lang)+'</select></div>'+
     '<div><label class="f">Distribution</label><select class="field" id="f-mode">'+
