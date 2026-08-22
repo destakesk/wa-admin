@@ -42,14 +42,18 @@
   .abar .who a { color:var(--accent-ink); cursor:pointer; text-decoration:underline; }
   .abar input.search { width:100%; margin-top:10px; background:var(--page); color:var(--ink); border:1px solid var(--border); border-radius:9px; padding:8px 11px; }
   .abar input.search:focus { outline:2px solid var(--accent); border-color:transparent; }
-  .abtns { display:flex; gap:8px; margin-top:8px; }
-  .abtns button { flex:1; background:var(--accent-soft); color:var(--accent-ink); border:1px solid var(--accent); border-radius:9px; padding:8px; font-weight:600; cursor:pointer; font-size:13px; }
-  .filters { padding:10px 16px; border-bottom:1px solid var(--hair); }
-  .frow { display:flex; gap:5px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
-  .frow:last-child { margin-bottom:0; }
-  .flbl { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); width:58px; flex:none; }
-  .chip { font-size:12px; border:1px solid var(--border); background:var(--page); color:var(--ink-2); border-radius:999px; padding:3px 10px; cursor:pointer; }
-  .chip:hover { border-color:var(--accent); } .chip.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+  .abtns { display:flex; gap:6px; margin-top:8px; }
+  .abtns button { flex:1; background:var(--accent-soft); color:var(--accent-ink); border:1px solid var(--accent); border-radius:9px; padding:7px 4px; font-weight:600; cursor:pointer; font-size:12.5px; }
+  .filters { padding:12px 16px; border-bottom:1px solid var(--hair); display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .flt { position:relative; }
+  .flt select { width:100%; -webkit-appearance:none; appearance:none; font:inherit; font-size:12.5px;
+    color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:9px;
+    padding:7px 26px 7px 10px; cursor:pointer; }
+  .flt select:focus { outline:2px solid var(--accent); border-color:transparent; }
+  .flt select.set { background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+  .flt::after { content:"▾"; position:absolute; right:9px; top:50%; transform:translateY(-50%); font-size:10px; color:var(--muted); pointer-events:none; }
+  .fclear { grid-column:1 / -1; text-align:center; font-size:12px; color:var(--muted); background:none; border:none; cursor:pointer; padding:2px; }
+  .fclear:hover { color:var(--accent-ink); }
   .slist { overflow:auto; flex:1; }
   .ghead { position:sticky; top:0; background:var(--surface); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
            color:var(--muted); padding:10px 16px 4px; border-bottom:1px solid var(--hair); }
@@ -113,13 +117,14 @@
       <div class="row1"><h1>Links</h1><span class="who"><span id="who-email"></span> · <a id="logout">sign out</a></span></div>
       <input class="search" id="search" type="search" placeholder="Search number or link…" autocomplete="off">
       <label class="chk" style="margin-top:8px;font-size:12px"><input type="checkbox" id="show-hidden"> Show hidden links</label>
-      <div class="abtns"><button id="new-btn">+ New link</button><button id="tpl-btn">Templates</button><button id="hist-btn">History</button></div>
+      <div class="abtns"><button id="new-btn">+ New link</button><button id="labels-btn">Labels</button><button id="tpl-btn">Templates</button><button id="hist-btn">History</button></div>
     </div>
     <div class="filters">
-      <div class="frow" id="f-platform"><span class="flbl">Platform</span></div>
-      <div class="frow" id="f-brand"><span class="flbl">Brand</span></div>
-      <div class="frow" id="f-lang"><span class="flbl">Language</span></div>
-      <div class="frow" id="f-creator"><span class="flbl">Creator</span></div>
+      <div class="flt"><select id="flt-brand"></select></div>
+      <div class="flt"><select id="flt-platform"></select></div>
+      <div class="flt"><select id="flt-lang"></select></div>
+      <div class="flt"><select id="flt-creator"></select></div>
+      <button class="fclear" id="flt-clear" style="display:none">Clear all filters</button>
     </div>
     <div class="slist" id="slist"></div>
   </aside>
@@ -144,7 +149,8 @@
     <div style="flex:0 0 110px"><label class="f">Language</label><select class="field" id="nl-lang"></select></div>
     <div style="flex:0 0 130px"><label class="f">Distribution</label><select class="field" id="nl-mode"></select></div></div>
   <div class="rowf"><div><label class="f">Title</label><input class="field" id="nl-title" placeholder="Istanbul Care"></div>
-    <div><label class="f">Brand / group</label><input class="field" id="nl-brand" list="brand-list" placeholder="Istanbul Care, Estemoon… or a new one"></div></div>
+    <div><label class="f">Brand / group</label><input class="field" id="nl-brand" list="brand-list" placeholder="Istanbul Care, Estemoon… or a new one"></div>
+    <div style="flex:0 0 140px"><label class="f">Platform</label><select class="field" id="nl-platform"></select></div></div>
   <label class="f">Ready message</label>
   <div class="tplbar"><select class="field" id="nl-tpl"><option value="">— apply template —</option></select></div>
   <textarea class="field" id="nl-msg" rows="2" style="margin-top:8px"></textarea>
@@ -152,6 +158,14 @@
   <textarea class="field mono" id="nl-nums" rows="5" placeholder="905xxxxxxxxx"></textarea>
   <div class="msg" id="nl-msgline"></div>
   <div class="mbtns"><button id="nl-create" class="primary">Create link</button><button id="nl-close">Cancel</button></div>
+</div></div>
+
+<div class="overlay" id="lbl-modal"><div class="modal" style="max-width:560px">
+  <h2>Labels</h2>
+  <p class="sub">Manage brands, platforms and languages here — you can create them without adding a link.
+  They then show up as options in the filters and when editing or creating a link.</p>
+  <div id="lbl-sections"></div>
+  <div class="mbtns"><button id="lbl-close">Close</button></div>
 </div></div>
 
 <div class="overlay" id="hist-modal"><div class="modal" style="max-width:680px">
@@ -201,7 +215,7 @@ function brandList(){
   return known.concat(extra);
 }
 function syncBrandData(){
-  document.getElementById("brand-list").innerHTML=brandList().map(b=>'<option value="'+esc(b)+'">').join("");
+  document.getElementById("brand-list").innerHTML=brandOpts().map(b=>'<option value="'+esc(b)+'">').join("");
 }
 function digits(s){return String(s).replace(/\D/g,"");}
 var toastT; function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1700);}
@@ -296,19 +310,40 @@ function recHtml(r){
 }
 
 /* filters */
-function chip(row,label,val,key){var b=document.createElement("button");b.className="chip"+(F[key]===val?" on":"");b.textContent=label;b.onclick=function(){F[key]=(F[key]===val)?null:val;renderChips();renderList();};row.appendChild(b);}
-function renderChips(){
-  var langs=[...new Set(SITES.map(s=>s.lang))];
-  var rp=document.getElementById("f-platform");rp.innerHTML='<span class="flbl">Platform</span>';PLATS.forEach(p=>chip(rp,PLATLBL[p]||p,p,"platform"));
-  var rb=document.getElementById("f-brand");rb.innerHTML='<span class="flbl">Brand</span>';brandList().forEach(b=>chip(rb,b,b,"brand"));
+// ---- labels (brand / platform / language) ----
+var LABELS={brand:[],platform:[],language:[]};
+function loadLabels(){return fetch(REST+"/wa_labels?select=kind,value,color,sort&order=kind,sort,value",{headers:{apikey:ANON}}).then(r=>r.json()).then(rows=>{
+  LABELS={brand:[],platform:[],language:[]};(rows||[]).forEach(r=>{(LABELS[r.kind]=LABELS[r.kind]||[]).push(r);});
+}).catch(()=>{});}
+function brandOpts(){var used=new Set(SITES.map(s=>s.brand).filter(Boolean));var defs=LABELS.brand.map(l=>l.value);
+  return [...new Set(defs.concat([...used]))];}
+function platformOpts(){var used=new Set(SITES.map(s=>s.platform).filter(Boolean));var defs=LABELS.platform.map(l=>l.value);
+  return [...new Set(defs.concat([...used]))];}
+function langOpts(){var used=new Set(SITES.map(s=>s.lang).filter(Boolean));var defs=LABELS.language.map(l=>l.value);
+  return [...new Set(defs.concat(ALL_LANGS).concat([...used]))];}
+function platColor(p){var l=LABELS.platform.find(x=>x.value===p);return (l&&l.color)||PC[p]||"var(--muted)";}
+function platLabel(p){return PLATLBL[p]||p;}
+
+function selOpt(val,label,cur){return '<option value="'+esc(val)+'"'+(cur===val?" selected":"")+'>'+esc(label)+'</option>';}
+function renderFilters(){
   syncBrandData();
-  var rl=document.getElementById("f-lang");rl.innerHTML='<span class="flbl">Language</span>';langs.forEach(l=>chip(rl,LANGNAME[l]||l,l,"lang"));
+  var b=document.getElementById("flt-brand");
+  b.innerHTML=selOpt("","All brands",F.brand||"")+brandOpts().map(x=>selOpt(x,x,F.brand||"")).join("");
+  b.className=F.brand?"set":"";
+  var p=document.getElementById("flt-platform");
+  p.innerHTML=selOpt("","All platforms",F.platform||"")+platformOpts().map(x=>selOpt(x,platLabel(x),F.platform||"")).join("");
+  p.className=F.platform?"set":"";
+  var l=document.getElementById("flt-lang");
+  l.innerHTML=selOpt("","All languages",F.lang||"")+langOpts().map(x=>selOpt(x,LANGNAME[x]||x,F.lang||"")).join("");
+  l.className=F.lang?"set":"";
   var creators=[...new Set(SITES.map(s=>(s.created_by&&s.created_by!=="(system)")?s.created_by:null))];
   var real=creators.filter(Boolean).sort(), hasImported=creators.indexOf(null)!==-1;
-  var rc=document.getElementById("f-creator");rc.innerHTML='<span class="flbl">Creator</span>';
-  real.forEach(em=>chip(rc,em.split("@")[0],em,"creator"));
-  if(hasImported)chip(rc,"Imported","__imported__","creator");
+  var c=document.getElementById("flt-creator");
+  c.innerHTML=selOpt("","All creators",F.creator||"")+real.map(em=>selOpt(em,em.split("@")[0],F.creator||"")).join("")+(hasImported?selOpt("__imported__","Imported",F.creator||""):"");
+  c.className=F.creator?"set":"";
+  document.getElementById("flt-clear").style.display=(F.brand||F.platform||F.lang||F.creator)?"":"none";
 }
+var renderChips=renderFilters; // geri uyumluluk
 
 /* list grouped by brand */
 function match(s){
@@ -336,14 +371,15 @@ function renderList(){
     rs.forEach(function(s){
       var i=SITES.indexOf(s), t=CLICKS[siteKey(s)]||0;
       html+='<div class="sitem'+(CUR===i?" on":"")+'" data-i="'+i+'"><span>'+esc(s.slug)+(s.hidden?' 🔒':'')+
-        '</span><span class="meta"><span class="dot" style="background:'+(PC[s.platform]||"var(--muted)")+'"></span>'+
+        '</span><span class="meta"><span class="dot" style="background:'+platColor(s.platform)+'"></span>'+
         esc(s.lang)+' · '+s.numbers.length+'n · '+t+'clk</span></div>';
     });
   });
   document.getElementById("slist").innerHTML=html||'<div class="empty">No links match.</div>';
 }
 
-function langOptions(sel){return ALL_LANGS.map(l=>'<option value="'+l+'"'+(sel===l?" selected":"")+'>'+LANGNAME[l]+'</option>').join("");}
+function langOptions(sel){return langOpts().map(l=>'<option value="'+esc(l)+'"'+(sel===l?" selected":"")+'>'+esc(LANGNAME[l]||l)+'</option>').join("");}
+function platOptions(sel){var opts=platformOpts();if(sel&&opts.indexOf(sel)===-1)opts=[sel].concat(opts);return opts.map(p=>'<option value="'+esc(p)+'"'+(sel===p?" selected":"")+'>'+esc(platLabel(p))+'</option>').join("");}
 function tplOptionsFor(lang){
   var list=TPLS.slice().sort((a,b)=>(a.lang===lang?-1:1)-(b.lang===lang?-1:1));
   return list.map(t=>'<option value="'+esc(t.message)+'">'+esc(t.label)+'</option>').join("");
@@ -363,7 +399,8 @@ function selectSite(i){
     '<div><label class="f">Distribution</label><select class="field" id="f-mode">'+
       ["round-robin","random","weighted"].map(m=>'<option'+(s.mode===m?" selected":"")+'>'+m+'</option>').join("")+'</select></div></div>'+
     '<div class="rowf"><div><label class="f">Title</label><input class="field" id="f-title" value="'+esc(s.title)+'"></div>'+
-    '<div><label class="f">Brand / group</label><input class="field" id="ed-brand" list="brand-list" value="'+esc(s.brand||"")+'" placeholder="e.g. Istanbul Care — or a new brand"></div></div>'+
+    '<div><label class="f">Brand / group</label><input class="field" id="ed-brand" list="brand-list" value="'+esc(s.brand||"")+'" placeholder="e.g. Istanbul Care — or a new brand"></div>'+
+    '<div style="flex:0 0 150px"><label class="f">Platform</label><select class="field" id="ed-platform">'+platOptions(s.platform)+'</select></div></div>'+
     '<label class="f">Ready message</label><textarea class="field" id="f-msg" rows="2">'+esc(s.message)+'</textarea>'+
     '<div class="tplbar"><select class="field" id="f-tpl"><option value="">— apply template —</option>'+tplOptionsFor(s.lang)+'</select>'+
       '<button class="linkbtn" id="save-tpl">Save current as template</button></div>'+
@@ -399,7 +436,7 @@ function numInfo(){
   if(sh.length)h+='<br>Also in other links:<br>'+sh.map(([n,r])=>n+" → "+r.join(", ")).join("<br>");
   document.getElementById("numinfo").innerHTML=h;
 }
-function collect(){return{title:document.getElementById("f-title").value.trim(),lang:document.getElementById("f-lang-sel").value,mode:document.getElementById("f-mode").value,message:document.getElementById("f-msg").value.trim(),numbers:[...new Set(document.getElementById("f-nums").value.split("\n").map(digits).filter(Boolean))],hidden:document.getElementById("f-hidden").checked,brand:document.getElementById("ed-brand").value.trim()||null};}
+function collect(){return{title:document.getElementById("f-title").value.trim(),lang:document.getElementById("f-lang-sel").value,mode:document.getElementById("f-mode").value,message:document.getElementById("f-msg").value.trim(),numbers:[...new Set(document.getElementById("f-nums").value.split("\n").map(digits).filter(Boolean))],hidden:document.getElementById("f-hidden").checked,brand:document.getElementById("ed-brand").value.trim()||null,platform:document.getElementById("ed-platform").value||null};}
 function say(t,cls){var m=document.getElementById("msg");m.textContent=t;m.className="msg "+(cls||"");}
 function saveSite(){
   var s=SITES[CUR], body=collect();
@@ -436,6 +473,7 @@ function renderTplModal(){
 /* new link modal */
 function openNew(){
   document.getElementById("nl-lang").innerHTML=langOptions("en");
+  document.getElementById("nl-platform").innerHTML=platOptions("Meta");
   document.getElementById("nl-mode").innerHTML=["round-robin","random","weighted"].map(m=>'<option>'+m+'</option>').join("");
   document.getElementById("nl-tpl").innerHTML='<option value="">— apply template —</option>'+tplOptionsFor("en");
   document.getElementById("nl-slug").value="";document.getElementById("nl-title").value="";
@@ -448,7 +486,7 @@ function createLink(){
   var slug=digits;var v=id=>document.getElementById(id).value;
   var slugv=v("nl-slug").trim().toLowerCase();
   var body={slug:slugv,title:v("nl-title").trim(),lang:v("nl-lang"),mode:v("nl-mode"),message:v("nl-msg").trim(),
-    brand:v("nl-brand").trim()||undefined,
+    brand:v("nl-brand").trim()||undefined, platform:v("nl-platform")||undefined,
     numbers:[...new Set(v("nl-nums").split("\n").map(digits).filter(Boolean))]};
   var line=document.getElementById("nl-msgline");
   if(!/^[a-z0-9][a-z0-9-]{1,60}$/.test(body.slug)){line.textContent="Invalid link name (lowercase, digits, hyphen).";line.className="msg err";return;}
@@ -470,13 +508,57 @@ function showApp(email){
   document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="grid";
   document.getElementById("who-email").textContent=email||"";
-  Promise.all([loadSites(),loadTpls(),loadClicks()]).then(()=>{renderChips();renderList();}).catch(e=>toast("Load failed: "+e.message));
+  Promise.all([loadSites(),loadTpls(),loadClicks(),loadLabels()]).then(()=>{renderFilters();renderList();}).catch(e=>toast("Load failed: "+e.message));
 }
 function doLogout(){clearTok();location.reload();}
 
 document.getElementById("lform").addEventListener("submit",function(e){e.preventDefault();var btn=document.getElementById("l-btn"),err=document.getElementById("l-err");btn.disabled=true;err.textContent="";login(document.getElementById("l-email").value.trim(),document.getElementById("l-pass").value).then(t=>{saveTok(t);showApp(t.user&&t.user.email);}).catch(e=>{btn.disabled=false;err.textContent=e.message;});});
 document.getElementById("logout").onclick=doLogout;
 document.getElementById("search").addEventListener("input",function(){F.q=this.value;renderList();});
+["brand","platform","lang","creator"].forEach(function(k){
+  document.getElementById("flt-"+k).addEventListener("change",function(){F[k]=this.value||null;renderFilters();renderList();});
+});
+document.getElementById("flt-clear").onclick=function(){F.brand=F.platform=F.lang=F.creator=null;renderFilters();renderList();};
+
+/* ---- Labels manager ---- */
+var LKINDS=[["brand","Brands","Istanbul Care, Suzermed…"],["platform","Platforms","Meta, Bing Ads…"],["language","Languages","en, pt, ar…"]];
+function renderLabels(){
+  document.getElementById("lbl-sections").innerHTML=LKINDS.map(function(k){
+    var kind=k[0], title=k[1], ph=k[2];
+    var items=(LABELS[kind]||[]).slice().sort((a,b)=>(a.sort-b.sort)||a.value.localeCompare(b.value));
+    var used=new Set(SITES.map(s=>kind==="brand"?s.brand:kind==="platform"?s.platform:s.lang).filter(Boolean));
+    return '<div style="margin-bottom:18px"><label class="f">'+title+'</label>'+
+      '<div class="tpl-list">'+ (items.length?items.map(function(it){
+        var disp=kind==="language"?((LANGNAME[it.value]||it.value)+" ("+it.value+")"):it.value;
+        var inUse=used.has(it.value);
+        return '<div class="tpl-item"><div class="body"><div class="tl">'+esc(disp)+
+          (inUse?' <span style="color:var(--muted);font-weight:400;font-size:11px">· in use</span>':'')+'</div></div>'+
+          '<button class="x" data-kind="'+kind+'" data-val="'+esc(it.value)+'" title="Delete">✕</button></div>';
+      }).join(""):'<div class="clk">None yet.</div>') +'</div>'+
+      '<div class="tplbar" style="margin-top:8px"><input class="field" id="lbl-new-'+kind+'" placeholder="Add '+title.toLowerCase().replace(/s$/,"")+' — e.g. '+ph+'">'+
+        '<button class="linkbtn" data-add="'+kind+'">Add</button></div></div>';
+  }).join("");
+  document.querySelectorAll("#lbl-sections .x").forEach(b=>b.onclick=function(){delLabel(this.dataset.kind,this.dataset.val);});
+  document.querySelectorAll("#lbl-sections [data-add]").forEach(b=>b.onclick=function(){
+    var kind=this.dataset.add, inp=document.getElementById("lbl-new-"+kind), val=inp.value.trim();
+    if(!val){toast("Enter a value");return;}
+    if(kind==="language")val=val.toLowerCase();
+    addLabel(kind,val).then(()=>{inp.value="";});
+  });
+}
+function addLabel(kind,value){
+  return authFetch("/wa_labels",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal,resolution=ignore-duplicates"},body:JSON.stringify({kind,value})})
+    .then(r=>{if(!r.ok&&r.status!==409)throw new Error("Could not add");return loadLabels();})
+    .then(()=>{renderLabels();renderFilters();toast("Added");}).catch(e=>toast(e.message));
+}
+function delLabel(kind,value){
+  var used=SITES.some(s=>(kind==="brand"?s.brand:kind==="platform"?s.platform:s.lang)===value);
+  if(used&&!confirm("“"+value+"” is used by some links. Removing it from Labels won’t change those links; it just stops suggesting it. Continue?"))return;
+  authFetch("/wa_labels?kind=eq."+encodeURIComponent(kind)+"&value=eq."+encodeURIComponent(value),{method:"DELETE"})
+    .then(()=>loadLabels()).then(()=>{renderLabels();renderFilters();toast("Removed");}).catch(e=>toast(e.message));
+}
+document.getElementById("labels-btn").onclick=function(){renderLabels();document.getElementById("lbl-modal").classList.add("on");};
+document.getElementById("lbl-close").onclick=()=>document.getElementById("lbl-modal").classList.remove("on");
 document.getElementById("show-hidden").addEventListener("change",function(){SHOW_HIDDEN=this.checked;renderList();});
 document.getElementById("new-btn").onclick=openNew;
 document.getElementById("nl-close").onclick=()=>document.getElementById("new-modal").classList.remove("on");
