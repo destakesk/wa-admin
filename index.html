@@ -182,6 +182,9 @@
   .rt-pa .pp { min-width:108px; }
   .rt-pa.warn .pe-bx, .rt-at tr.warn .n-bx { border-color:var(--err); }
   .rt-pa .lead { min-width:20px; text-align:center; }
+  .rt-barlbl { font-weight:650; font-size:13.5px; color:var(--ink); }
+  .pers-search { font:inherit; font-size:13px; padding:7px 11px; border:1px solid var(--border); border-radius:8px; background:var(--page); color:var(--ink); min-width:220px; }
+  .rt-pa .pe-pers { flex:none; }
 </style>
 </head>
 <body>
@@ -205,7 +208,7 @@
       <div class="row1"><h1>Links</h1><span class="who"><span id="who-email"></span> · <a id="logout">sign out</a></span></div>
       <input class="search" id="search" type="search" placeholder="Search number or link…" autocomplete="off">
       <label class="chk" style="margin-top:8px;font-size:12px"><input type="checkbox" id="show-hidden"> Show hidden links</label>
-      <div class="abtns"><button id="new-btn">+ New link</button><button id="routing-btn">Routing</button><button id="labels-btn">Labels</button><button id="tpl-btn">Templates</button><button id="hist-btn">History</button></div>
+      <div class="abtns"><button id="new-btn">+ New link</button><button id="routing-btn">Routing</button><button id="personel-btn">Personel</button><button id="labels-btn">Labels</button><button id="tpl-btn">Templates</button><button id="hist-btn">History</button></div>
     </div>
     <div class="filters">
       <div class="flt"><select id="flt-brand"></select></div>
@@ -259,20 +262,29 @@
 <div class="overlay" id="routing-modal"><div class="modal rtw">
   <div class="rtw-top">
     <div><h2 style="margin:0">Lead Routing</h2>
-      <p class="sub" style="margin:2px 0 0;font-size:12.5px">Form ↔ danışman eşlemesi, sıra ve dağıtım. Mevcut linkleri/numaraları değiştirmez.</p></div>
+      <p class="sub" style="margin:2px 0 0;font-size:12.5px">Form ↔ link eşlemesi ve sıra. İsim/Bitrix ID girişi <b>Personel</b> sayfasında. Mevcut linkleri/numaraları değiştirmez.</p></div>
     <button id="routing-close" class="rtw-x" aria-label="Kapat">✕</button>
   </div>
   <div class="rtw-bar">
-    <div class="rtabs">
-      <button class="rtab on" data-rtab="forms">Formlar</button>
-      <button class="rtab" data-rtab="numbers">Numaralar</button>
-    </div>
+    <div class="rt-barlbl">Formlar</div>
     <label class="rt-bf"><span>Marka</span><select id="rt-brandfilter"></select></label>
   </div>
   <div class="rtw-body">
     <div id="rt-forms" class="rt-pane"></div>
-    <div id="rt-numbers" class="rt-pane" hidden></div>
   </div>
+</div></div>
+
+<div class="overlay" id="personel-modal"><div class="modal rtw">
+  <div class="rtw-top">
+    <div><h2 style="margin:0">Personel</h2>
+      <p class="sub" style="margin:2px 0 0;font-size:12.5px">Ad soyad + numara + Bitrix kişi ID. Routing havuzları bu kayıttan okur. Linkler/numaralar değişmez.</p></div>
+    <button id="personel-close" class="rtw-x" aria-label="Kapat">✕</button>
+  </div>
+  <div class="rtw-bar">
+    <input id="pers-search" placeholder="Ad veya numara ara…" class="pers-search">
+    <label class="rt-bf"><span>Marka</span><select id="pers-brandfilter"></select></label>
+  </div>
+  <div class="rtw-body"><div id="pers-body" class="rt-pane"></div></div>
 </div></div>
 
 <div class="overlay" id="hist-modal"><div class="modal" style="max-width:680px">
@@ -667,7 +679,7 @@ function delLabel(kind,value){
 /* ===== Lead Routing workspace (link-tabanlı) ===== */
 /* Danışman = linklerin içindeki numara. Havuz = formun bağlı linkinin numaraları (salt-okunur).
    Her numara wa_agents'te isim + Bitrix ID ile zenginleştirilir (telefon bazlı). */
-var RT_FORMS=[], RT_ENRICH={}, RT_CT={}, RT_COUNTS={}, RT_TAB="forms", RT_SEL=null, RT_BRAND="", RT_NQ="";
+var RT_FORMS=[], RT_ENRICH={}, RT_CT={}, RT_COUNTS={}, RT_SEL=null, RT_BRAND="";
 
 function loadRouting(){
   return Promise.all([
@@ -704,18 +716,13 @@ function linkSelHTML(cur){
 }
 
 function openRouting(){
-  RT_TAB="forms"; RT_SEL=null; RT_BRAND=""; RT_NQ="";
+  RT_SEL=null; RT_BRAND="";
   document.getElementById("routing-modal").classList.add("on");
   document.getElementById("rt-forms").innerHTML='<div class="rt-empty">Yükleniyor…</div>';
   loadRouting().then(function(){ var ff=RT_FORMS.filter(formOK); if(ff.length)RT_SEL=ff[0].id; renderBrandFilter(); renderRouting(); }).catch(e=>toast("Yüklenemedi: "+e.message));
 }
 function renderBrandFilter(){ var s=document.getElementById("rt-brandfilter"); s.innerHTML=selOpt("","Tüm markalar",RT_BRAND)+brandOpts().map(b=>selOpt(b,b,RT_BRAND)).join(""); s.value=RT_BRAND; }
-function renderRouting(){
-  document.getElementById("rt-forms").hidden=RT_TAB!=="forms";
-  document.getElementById("rt-numbers").hidden=RT_TAB!=="numbers";
-  document.querySelectorAll(".rtab").forEach(t=>t.classList.toggle("on",t.dataset.rtab===RT_TAB));
-  if(RT_TAB==="forms") renderForms(); else renderNumbers();
-}
+function renderRouting(){ renderForms(); }
 function rtReload(keep){ var s=RT_SEL; return loadRouting().then(function(){ if(keep)RT_SEL=s; renderBrandFilter(); renderRouting(); }); }
 
 /* ---- FORMS ---- */
@@ -749,14 +756,14 @@ function formDetailHTML(f){
     : nums.map(function(ph,i){ var a=enr(ph)||{}, c=counts[ph]||0, miss=!a.bitrix_id;
         return '<div class="rt-pa'+(i===nextIdx?' next':'')+(miss?' warn':'')+'" data-ph="'+esc(ph)+'">'+
           '<span class="idx">'+(i+1)+'</span>'+
-          '<input class="pe-name" value="'+esc(a.name||"")+'" placeholder="isim">'+
-          '<span class="pp">'+esc(ph)+(i===nextIdx?' <span class="chip on">sıradaki</span>':'')+'</span>'+
-          '<input class="pe-bx mono" value="'+esc(a.bitrix_id||"")+'" placeholder="Bitrix ID">'+
+          '<span class="pn">'+(a.name?esc(a.name):'<span style="color:var(--err)">— isim yok</span>')+(i===nextIdx?' <span class="chip on">sıradaki</span>':'')+'</span>'+
+          '<span class="pp">'+esc(ph)+'</span>'+
+          '<span class="pp">'+(a.bitrix_id?'Bitrix '+esc(a.bitrix_id):'<span style="color:var(--err)">Bitrix yok</span>')+'</span>'+
           '<span class="lead" title="bu numaraya giden lead">'+c+'</span>'+
-          '<button class="rt-ic save pe-save" title="isim + Bitrix ID kaydet">✓</button></div>';
+          '<button class="rt-ic pe-pers" title="Personel sayfasında düzenle">Personel</button></div>';
       }).join("");
   return '<h4>'+esc(f.name)+'</h4>'+
-    '<div style="font-size:12px;color:var(--muted)">Havuz, bağlı linkin numaralarından gelir (salt-okunur). Her numaraya isim + Bitrix ID ekle. Sıra bu numaralar üzerinde döner; linkler/numaralar DEĞİŞMEZ.</div>'+
+    '<div style="font-size:12px;color:var(--muted)">Havuz, bağlı linkin numaralarından gelir (salt-okunur). İsim/Bitrix ID girişi <b>Personel</b> sayfasından yapılır — eksik numarada “Personel” düğmesine bas. Sıra bu numaralar üzerinde döner; linkler/numaralar DEĞİŞMEZ.</div>'+
     '<div class="rt-fields">'+
       '<div class="fl"><label>Form adı</label><input class="fd-name" value="'+esc(f.name)+'"></div>'+
       '<div class="fl"><label>Meta form ID</label><input class="fd-fid mono" value="'+esc(f.form_id)+'"></div>'+
@@ -778,42 +785,54 @@ function loadRecent(fid){
     }).catch(()=>{});
 }
 
-/* ---- NUMBERS (zenginleştirme) ---- */
-function renderNumbers(){
-  var nums=allNumbers().filter(e=> (!RT_BRAND||e.brands.has(RT_BRAND)) );
-  nums.sort((a,b)=>a.phone.localeCompare(b.phone));
-  var missing=nums.filter(e=>!(enr(e.phone)&&enr(e.phone).bitrix_id)).length;
-  var rows=nums.map(function(e){ var a=enr(e.phone)||{}, miss=!a.bitrix_id;
-    return '<tr data-ph="'+esc(e.phone)+'"'+(miss?' class="warn"':'')+'>'+
-      '<td class="mono">'+esc(e.phone)+'</td>'+
-      '<td><input class="n-name" value="'+esc(a.name||"")+'" placeholder="isim"></td>'+
-      '<td><input class="n-bx mono" value="'+esc(a.bitrix_id||"")+'" placeholder="Bitrix ID"></td>'+
-      '<td>'+[...e.brands].map(b=>'<span class="chip">'+esc(b)+'</span>').join(" ")+'</td>'+
-      '<td style="text-align:center">'+e.slugs.length+'</td>'+
-      '<td><button class="rt-ic save n-save">Kaydet</button></td></tr>';
-  }).join("");
-  document.getElementById("rt-numbers").innerHTML=
-    '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap">'+
-      '<input id="n-search" placeholder="Numara ara…" value="'+esc(RT_NQ)+'" style="font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--page);color:var(--ink);min-width:180px">'+
-      '<span style="font-size:12px;color:var(--muted)">'+nums.length+' numara · <b style="color:'+(missing?'var(--err)':'var(--ok)')+'">'+missing+'</b> tanesinde Bitrix ID yok</span></div>'+
-    '<table class="rt-at"><thead><tr><th>Numara</th><th>İsim</th><th>Bitrix ID</th><th>Marka</th><th>Link</th><th></th></tr></thead><tbody>'+
-    (rows||'<tr><td colspan="6"><div class="rt-empty">Numara yok.</div></td></tr>')+'</tbody></table>';
-  if(RT_NQ) filterNumRows(RT_NQ);
+/* ===== PERSONEL (ayrı sayfa: ad soyad + numara + Bitrix ID) ===== */
+var PERS={}, PERS_Q="", PERS_BRAND="";
+function loadPersonel(){ return authFetch("/wa_agents?select=id,name,phone,bitrix_id").then(r=>r.json()).then(function(rows){ PERS={}; (rows||[]).forEach(a=>{PERS[String(a.phone)]=a;}); }); }
+function persEnr(ph){ return PERS[String(ph)]||null; }
+function openPersonel(prefill){
+  PERS_Q=prefill||""; PERS_BRAND="";
+  document.getElementById("personel-modal").classList.add("on");
+  document.getElementById("pers-body").innerHTML='<div class="rt-empty">Yükleniyor…</div>';
+  loadPersonel().then(function(){ renderPersBrand(); var s=document.getElementById("pers-search"); if(s)s.value=PERS_Q; renderPersonel(); if(prefill) setTimeout(()=>focusPers(prefill),60); }).catch(e=>toast("Yüklenemedi: "+e.message));
 }
-function filterNumRows(q){ [...document.querySelectorAll("#rt-numbers tbody tr")].forEach(tr=>{ tr.style.display=(!q||(tr.dataset.ph||"").includes(q))?"":"none"; }); }
-
-/* ---- enrichment upsert (telefon bazlı) ---- */
-function saveEnrich(phone, name, bitrix){
+function renderPersBrand(){ var s=document.getElementById("pers-brandfilter"); s.innerHTML=selOpt("","Tüm markalar",PERS_BRAND)+brandOpts().map(b=>selOpt(b,b,PERS_BRAND)).join(""); s.value=PERS_BRAND; }
+function renderPersonel(){
+  var by={}; allNumbers().forEach(e=>{ by[e.phone]={phone:e.phone,brands:e.brands,slugs:e.slugs}; });
+  Object.keys(PERS).forEach(ph=>{ if(!by[ph]) by[ph]={phone:ph,brands:new Set(),slugs:[]}; });
+  var list=Object.keys(by).map(k=>by[k]);
+  if(PERS_BRAND) list=list.filter(e=>e.brands.has(PERS_BRAND));
+  list.sort((a,b)=>a.phone.localeCompare(b.phone));
+  var missing=list.filter(e=>!(persEnr(e.phone)&&persEnr(e.phone).bitrix_id)).length;
+  var rows=list.map(function(e){ var a=persEnr(e.phone)||{}, miss=!a.bitrix_id, inLink=e.slugs.length>0;
+    return '<tr data-ph="'+esc(e.phone)+'"'+(miss?' class="warn"':'')+'>'+
+      '<td><input class="p-name" value="'+esc(a.name||"")+'" placeholder="Ad Soyad"></td>'+
+      '<td class="mono">'+esc(e.phone)+'</td>'+
+      '<td><input class="p-bx mono" value="'+esc(a.bitrix_id||"")+'" placeholder="Bitrix ID"></td>'+
+      '<td>'+[...e.brands].map(b=>'<span class="chip">'+esc(b)+'</span>').join(" ")+'</td>'+
+      '<td style="text-align:center">'+(inLink?e.slugs.length:'<span style="color:var(--err)">linkte yok</span>')+'</td>'+
+      '<td><div class="act"><button class="rt-ic save p-save">Kaydet</button>'+(a.id?'<button class="rt-ic del p-del">Sil</button>':'')+'</div></td></tr>';
+  }).join("");
+  document.getElementById("pers-body").innerHTML=
+    '<div class="rt-addrow"><div class="fl"><label>Ad Soyad</label><input id="pa-name" placeholder="Ad Soyad"></div>'+
+      '<div class="fl"><label>Numara</label><input id="pa-phone" class="mono" placeholder="90…"></div>'+
+      '<div class="fl"><label>Bitrix ID</label><input id="pa-bx" class="mono" placeholder="örn. 42"></div>'+
+      '<button class="rt-add" id="pa-add">Personel ekle</button>'+
+      '<span style="font-size:12px;color:var(--muted);margin-left:auto">'+list.length+' numara · <b style="color:'+(missing?'var(--err)':'var(--ok)')+'">'+missing+'</b> eksik Bitrix ID</span></div>'+
+    '<table class="rt-at"><thead><tr><th>Ad Soyad</th><th>Numara</th><th>Bitrix ID</th><th>Marka</th><th>Link</th><th></th></tr></thead><tbody>'+
+    (rows||'<tr><td colspan="6"><div class="rt-empty">Numara yok.</div></td></tr>')+'</tbody></table>';
+  if(PERS_Q) filterPersRows(PERS_Q);
+}
+function filterPersRows(q){ q=String(q).toLowerCase(); [...document.querySelectorAll("#pers-body tbody tr")].forEach(function(tr){ var ph=(tr.dataset.ph||"").toLowerCase(); var ni=tr.querySelector(".p-name"); var nm=ni?ni.value.toLowerCase():""; tr.style.display=(!q||ph.indexOf(q)!==-1||nm.indexOf(q)!==-1)?"":"none"; }); }
+function focusPers(ph){ var tr=[...document.querySelectorAll("#pers-body tbody tr")].find(x=>x.dataset.ph===ph); if(tr){ tr.scrollIntoView({block:"center"}); var i=tr.querySelector(".p-name"); if(i)i.focus(); } }
+function savePerson(phone, name, bitrix){
   return authFetch("/wa_agents?on_conflict=phone",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{phone:phone,name:name||null,bitrix_id:bitrix||null}])})
-    .then(r=>{ if(!r.ok) throw new Error("Kaydedilemedi"); return rtReload(true); });
+    .then(r=>{ if(!r.ok) throw new Error("Kaydedilemedi"); return loadPersonel(); }).then(renderPersonel);
 }
 
 /* ---- wiring ---- */
 document.getElementById("routing-btn").onclick=openRouting;
 document.getElementById("routing-close").onclick=()=>document.getElementById("routing-modal").classList.remove("on");
-document.querySelectorAll(".rtab").forEach(t=>t.onclick=function(){ RT_TAB=this.dataset.rtab; renderRouting(); });
 document.getElementById("rt-brandfilter").onchange=function(){ RT_BRAND=this.value; RT_SEL=null; renderRouting(); };
-document.getElementById("routing-modal").addEventListener("input",function(e){ if(e.target.id==="n-search"){ RT_NQ=e.target.value.trim(); filterNumRows(RT_NQ); } });
 
 document.getElementById("routing-modal").addEventListener("click",function(e){
   var t=e.target;
@@ -839,16 +858,35 @@ document.getElementById("routing-modal").addEventListener("click",function(e){
     if(!confirm("Sıra sıfırlansın mı? Sıradaki atama havuzun başından başlar."))return;
     authFetch("/wa_form_counters?form_id=eq."+RT_SEL,{method:"DELETE"}).then(()=>rtReload(true)).then(()=>toast("Sıra sıfırlandı")).catch(e=>toast(e.message)); return;
   }
-  if(t.classList.contains("pe-save")){
-    var row=t.closest(".rt-pa"); saveEnrich(row.dataset.ph, row.querySelector(".pe-name").value.trim(), row.querySelector(".pe-bx").value.trim()).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
-  }
-  if(t.classList.contains("n-save")){
-    var trn=t.closest("tr"); saveEnrich(trn.dataset.ph, trn.querySelector(".n-name").value.trim(), trn.querySelector(".n-bx").value.trim()).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
+  if(t.classList.contains("pe-pers")){
+    var row=t.closest(".rt-pa"); openPersonel(row.dataset.ph); return;
   }
   var fi=t.closest(".rt-fi"); if(fi){ RT_SEL=+fi.dataset.fid; renderForms(); return; }
   var ov=t.closest(".overlay"); if(ov&&t===ov) ov.classList.remove("on");
 });
 function val(id){ var e=document.getElementById(id); return e? e.value.trim() : ""; }
+
+/* ---- Personel wiring ---- */
+document.getElementById("personel-btn").onclick=function(){ openPersonel(); };
+document.getElementById("personel-close").onclick=function(){ document.getElementById("personel-modal").classList.remove("on"); if(document.getElementById("routing-modal").classList.contains("on")) rtReload(true); };
+document.getElementById("pers-brandfilter").onchange=function(){ PERS_BRAND=this.value; renderPersonel(); };
+document.getElementById("personel-modal").addEventListener("input",function(e){ if(e.target.id==="pers-search"){ PERS_Q=e.target.value.trim(); filterPersRows(PERS_Q); } });
+document.getElementById("personel-modal").addEventListener("click",function(e){
+  var t=e.target;
+  if(t.id==="pa-add"){
+    var nm=val("pa-name"), ph=digits(val("pa-phone")), bx=val("pa-bx");
+    if(!ph){ toast("Numara gerekli"); return; }
+    savePerson(ph,nm,bx).then(()=>{ var a=document.getElementById("pa-name"); if(a)a.value=""; var b=document.getElementById("pa-phone"); if(b)b.value=""; var c=document.getElementById("pa-bx"); if(c)c.value=""; toast("Personel eklendi"); }).catch(e=>toast(e.message)); return;
+  }
+  if(t.classList.contains("p-save")){
+    var tr=t.closest("tr"); savePerson(tr.dataset.ph, tr.querySelector(".p-name").value.trim(), tr.querySelector(".p-bx").value.trim()).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
+  }
+  if(t.classList.contains("p-del")){
+    var tr2=t.closest("tr"); if(!confirm("Bu personel kaydı silinsin mi? (numara linklerde kalır)"))return;
+    authFetch("/wa_agents?phone=eq."+encodeURIComponent(tr2.dataset.ph),{method:"DELETE"}).then(()=>loadPersonel()).then(renderPersonel).then(()=>toast("Silindi")).catch(e=>toast(e.message)); return;
+  }
+  var ov=t.closest(".overlay"); if(ov&&t===ov){ ov.classList.remove("on"); if(document.getElementById("routing-modal").classList.contains("on")) rtReload(true); }
+});
 
 document.getElementById("labels-btn").onclick=function(){renderLabels();document.getElementById("lbl-modal").classList.add("on");};
 document.getElementById("lbl-close").onclick=()=>document.getElementById("lbl-modal").classList.remove("on");
