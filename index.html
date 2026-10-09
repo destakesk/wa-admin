@@ -94,29 +94,87 @@
   .modal .mbtns { display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
   .modal .mbtns button { border-radius:9px; padding:9px 16px; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--ink); }
   .modal .mbtns .primary { background:var(--accent); border-color:var(--accent); color:#fff; }
-  /* routing */
-  .rtabs { display:flex; gap:6px; margin:4px 0 14px; border-bottom:1px solid var(--hair); }
-  .rtab { background:none; border:none; border-bottom:2px solid transparent; color:var(--ink-2);
-    font-weight:600; font-size:13.5px; padding:7px 10px; cursor:pointer; margin-bottom:-1px; }
-  .rtab.on { color:var(--accent-ink); border-bottom-color:var(--accent); }
-  .rt-card { border:1px solid var(--hair); border-radius:10px; padding:11px 13px; margin-bottom:8px; }
-  .rt-card .rh { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .rt-card .nm { font-weight:650; } .rt-card .fid { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); }
-  .rt-card .sp { margin-left:auto; color:var(--muted); font-size:12px; }
-  .rt-card .x { color:var(--err); background:none; border:none; cursor:pointer; font-size:15px; }
-  .rt-row { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
-  .rt-row input, .rt-row select { flex:1; min-width:90px; font:inherit; font-size:13px; color:var(--ink);
-    background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 9px; }
-  .rt-row .mono { font-family:ui-monospace,Menlo,monospace; }
-  .rt-add { background:var(--accent); color:#fff; border:1px solid var(--accent); border-radius:8px;
-    padding:7px 14px; font-weight:600; cursor:pointer; font-size:13px; flex:none; }
-  .rt-pool { margin-top:10px; padding-top:10px; border-top:1px solid var(--hair); }
-  .rt-pool .pa { display:flex; gap:8px; align-items:center; font-size:13.5px; padding:4px 0; }
-  .rt-pool .pa input[type=checkbox] { width:auto; } .rt-pool .pa .ord { width:46px; }
-  .rt-pool .pa .pn { flex:1; } .rt-pool .pa .pp { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); }
-  .rt-save { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-weight:600; cursor:pointer; font-size:13px; margin-top:8px; }
-  .rt-recent { font-size:12px; color:var(--muted); margin-top:8px; line-height:1.6; }
-  .rt-empty { color:var(--muted); font-size:13px; padding:14px 0; }
+  /* ===== routing workspace ===== */
+  .rtw { max-width:1040px; width:96vw; height:88vh; display:flex; flex-direction:column; padding:0; overflow:hidden; }
+  .rtw-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:16px 20px 12px; border-bottom:1px solid var(--hair); }
+  .rtw-x { background:none; border:1px solid var(--border); border-radius:8px; color:var(--ink-2); cursor:pointer; font-size:14px; padding:5px 10px; }
+  .rtw-x:hover { color:var(--ink); }
+  .rtw-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 20px; border-bottom:1px solid var(--hair); flex-wrap:wrap; }
+  .rtabs { display:flex; gap:4px; }
+  .rtab { background:none; border:1px solid transparent; border-radius:8px; color:var(--ink-2); font-weight:600; font-size:13.5px; padding:6px 13px; cursor:pointer; }
+  .rtab.on { color:var(--accent-ink); background:var(--accent-soft); border-color:var(--accent); }
+  .rt-bf { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+  .rt-bf select { font:inherit; font-size:12.5px; color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:8px; padding:6px 9px; }
+  .rtw-body { flex:1; overflow:auto; padding:16px 20px 22px; min-height:0; }
+  .rt-pane { min-width:0; }
+
+  /* forms: iki sütun (liste + detay) */
+  .rt-split { display:grid; grid-template-columns:272px 1fr; gap:16px; align-items:start; }
+  @media (max-width:720px){ .rt-split { grid-template-columns:1fr; } }
+  .rt-list { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .rt-fi { border:1px solid var(--hair); border-radius:10px; padding:9px 11px; cursor:pointer; min-width:0; }
+  .rt-fi.on { border-color:var(--accent); background:var(--accent-soft); }
+  .rt-fi .t { font-weight:650; font-size:14px; display:flex; align-items:center; gap:6px; }
+  .rt-fi .m { color:var(--muted); font-size:11.5px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; }
+  .rt-fi .fid { font-family:ui-monospace,Menlo,monospace; }
+  .chip { display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:999px; border:1px solid var(--line); color:var(--ink-2); }
+  .chip.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink); }
+  .dotm { width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--muted); }
+  .dotm.act { background:var(--ok); }
+
+  .rt-detail { border:1px solid var(--hair); border-radius:12px; padding:14px 16px; min-width:0; }
+  .rt-detail h4 { margin:0 0 2px; font-size:16px; }
+  .rt-fields { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0; }
+  .rt-fields .fl { display:flex; flex-direction:column; gap:3px; }
+  .rt-fields label { font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; }
+  .rt-fields input, .rt-fields select { font:inherit; font-size:13px; color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 9px; }
+  .rt-fields .mono { font-family:ui-monospace,Menlo,monospace; }
+  .rt-sec { margin-top:14px; padding-top:12px; border-top:1px solid var(--hair); }
+  .rt-sec .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:8px; }
+  .rt-two { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .rt-two { grid-template-columns:1fr; } }
+  .rt-pool-list { display:flex; flex-direction:column; gap:6px; }
+  .rt-pa { display:flex; align-items:center; gap:8px; border:1px solid var(--hair); border-radius:9px; padding:7px 10px; font-size:13.5px; }
+  .rt-pa.next { border-color:var(--accent); background:var(--accent-soft); }
+  .rt-pa .idx { font-family:ui-monospace,monospace; font-size:11px; color:var(--muted); width:16px; text-align:center; }
+  .rt-pa .pn { flex:1; min-width:0; font-weight:600; } .rt-pa .pp { font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--muted); }
+  .rt-pa .lead { font-size:11px; color:var(--accent-ink); font-weight:600; }
+  .rt-pa .mv, .rt-pa .rm { background:none; border:1px solid var(--border); border-radius:6px; cursor:pointer; color:var(--ink-2); font-size:12px; width:24px; height:24px; line-height:1; }
+  .rt-pa .rm { color:var(--err); }
+  .rt-avail { display:flex; flex-direction:column; gap:5px; max-height:280px; overflow:auto; }
+  .rt-av { display:flex; align-items:center; gap:8px; border:1px dashed var(--line); border-radius:9px; padding:7px 10px; cursor:pointer; font-size:13px; }
+  .rt-av:hover { border-color:var(--accent); background:var(--accent-soft); }
+  .rt-av .pn { flex:1; min-width:0; } .rt-av .add { color:var(--accent-ink); font-weight:700; }
+
+  .rt-recent { font-size:12px; color:var(--ink-2); line-height:1.7; }
+  .rt-recent b { color:var(--accent-ink); }
+
+  /* agents table */
+  .rt-at { width:100%; border-collapse:collapse; font-size:13px; }
+  .rt-at th { text-align:left; color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line); }
+  .rt-at td { padding:6px 8px; border-bottom:1px solid var(--hair); vertical-align:middle; }
+  .rt-at input, .rt-at select { font:inherit; font-size:12.5px; color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:7px; padding:5px 7px; width:100%; }
+  .rt-at .mono { font-family:ui-monospace,Menlo,monospace; }
+  .rt-at .ld { color:var(--accent-ink); font-weight:600; white-space:nowrap; }
+  .rt-at .act { display:flex; gap:4px; }
+  .rt-ic { background:none; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-size:12px; padding:4px 7px; color:var(--ink-2); }
+  .rt-ic.save { color:var(--accent-ink); border-color:var(--accent); } .rt-ic.del { color:var(--err); }
+
+  /* matrix */
+  .rt-mx-wrap { overflow:auto; }
+  .rt-mx { border-collapse:collapse; font-size:12px; min-width:420px; }
+  .rt-mx th, .rt-mx td { border:1px solid var(--hair); padding:5px 8px; text-align:center; }
+  .rt-mx th.rowh, .rt-mx td.rowh { text-align:left; white-space:nowrap; font-weight:600; position:sticky; left:0; background:var(--surface); z-index:1; }
+  .rt-mx th.colh { font-weight:600; max-width:90px; }
+  .rt-mx td.cell { cursor:pointer; color:var(--muted); }
+  .rt-mx td.cell.in { background:var(--accent-soft); color:var(--accent-ink); font-weight:700; }
+  .rt-mx td.cell:hover { outline:2px solid var(--accent); outline-offset:-2px; }
+
+  .rt-add { background:var(--accent); color:#fff; border:1px solid var(--accent); border-radius:8px; padding:7px 14px; font-weight:600; cursor:pointer; font-size:13px; flex:none; }
+  .rt-addrow { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:12px; padding-top:12px; border-top:1px solid var(--hair); }
+  .rt-addrow .fl { display:flex; flex-direction:column; gap:3px; } .rt-addrow label { font-size:10.5px; color:var(--muted); font-weight:600; }
+  .rt-addrow input, .rt-addrow select { font:inherit; font-size:13px; color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 9px; }
+  .rt-empty { color:var(--muted); font-size:13px; padding:18px 0; text-align:center; }
 </style>
 </head>
 <body>
@@ -191,14 +249,25 @@
   <div class="mbtns"><button id="lbl-close">Close</button></div>
 </div></div>
 
-<div class="overlay" id="routing-modal"><div class="modal" style="max-width:720px">
-  <h2>Lead Routing</h2>
-  <p class="sub">Meta formlarını danışmanlara bağla. Zapier bir lead gönderince form'un sırası bir ilerler ve
-  sıradaki danışmanın numarası + Bitrix kişi ID'si döner. Buradaki hiçbir ayar mevcut linkleri/numaraları değiştirmez.</p>
-  <div class="rtabs"><button class="rtab on" data-rtab="forms">Formlar</button><button class="rtab" data-rtab="agents">Danışmanlar</button></div>
-  <div id="rt-forms"></div>
-  <div id="rt-agents" hidden></div>
-  <div class="mbtns"><button id="routing-close">Kapat</button></div>
+<div class="overlay" id="routing-modal"><div class="modal rtw">
+  <div class="rtw-top">
+    <div><h2 style="margin:0">Lead Routing</h2>
+      <p class="sub" style="margin:2px 0 0;font-size:12.5px">Form ↔ danışman eşlemesi, sıra ve dağıtım. Mevcut linkleri/numaraları değiştirmez.</p></div>
+    <button id="routing-close" class="rtw-x" aria-label="Kapat">✕</button>
+  </div>
+  <div class="rtw-bar">
+    <div class="rtabs">
+      <button class="rtab on" data-rtab="forms">Formlar</button>
+      <button class="rtab" data-rtab="agents">Danışmanlar</button>
+      <button class="rtab" data-rtab="matrix">Matris</button>
+    </div>
+    <label class="rt-bf"><span>Marka</span><select id="rt-brandfilter"></select></label>
+  </div>
+  <div class="rtw-body">
+    <div id="rt-forms" class="rt-pane"></div>
+    <div id="rt-agents" class="rt-pane" hidden></div>
+    <div id="rt-matrix" class="rt-pane" hidden></div>
+  </div>
 </div></div>
 
 <div class="overlay" id="hist-modal"><div class="modal" style="max-width:680px">
@@ -590,129 +659,231 @@ function delLabel(kind,value){
   authFetch("/wa_labels?kind=eq."+encodeURIComponent(kind)+"&value=eq."+encodeURIComponent(value),{method:"DELETE"})
     .then(()=>loadLabels()).then(()=>{renderLabels();renderFilters();toast("Removed");}).catch(e=>toast(e.message));
 }
-/* ===== Lead Routing (Formlar + Danışmanlar) ===== */
-var RT_AGENTS=[], RT_FORMS=[], RT_FA=[], RT_CT={}, RT_TAB="forms", RT_OPEN={};
+/* ===== Lead Routing workspace ===== */
+var RT_AGENTS=[], RT_FORMS=[], RT_FA=[], RT_CT={}, RT_COUNTS={}, RT_AGLD={}, RT_TAB="forms", RT_SEL=null, RT_BRAND="";
+
 function loadRouting(){
   return Promise.all([
-    authFetch("/wa_agents?select=id,name,phone,bitrix_id&order=name").then(r=>r.json()),
-    authFetch("/wa_forms?select=id,form_id,name&order=name").then(r=>r.json()),
+    authFetch("/wa_agents?select=id,name,phone,bitrix_id,brand,lang,active&order=name").then(r=>r.json()),
+    authFetch("/wa_forms?select=id,form_id,name,brand,lang,active&order=name").then(r=>r.json()),
     authFetch("/wa_form_agents?select=form_id,agent_id,sort").then(r=>r.json()),
-    authFetch("/wa_form_counters?select=form_id,n").then(r=>r.json())
+    authFetch("/wa_form_counters?select=form_id,n").then(r=>r.json()),
+    authFetch("/rpc/wa_lead_counts",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"}).then(r=>r.ok?r.json():[]).catch(()=>[])
   ]).then(function(res){
-    RT_AGENTS=res[0]||[]; RT_FORMS=res[1]||[]; RT_FA=res[2]||[]; RT_CT={};
-    (res[3]||[]).forEach(function(c){RT_CT[c.form_id]=c.n;});
+    RT_AGENTS=res[0]||[]; RT_FORMS=res[1]||[]; RT_FA=res[2]||[]; RT_CT={}; RT_COUNTS={}; RT_AGLD={};
+    (res[3]||[]).forEach(c=>{RT_CT[c.form_id]=c.n;});
+    (res[4]||[]).forEach(function(c){ (RT_COUNTS[c.meta_form_id]=RT_COUNTS[c.meta_form_id]||{})[c.agent_id]=+c.cnt; RT_AGLD[c.agent_id]=(RT_AGLD[c.agent_id]||0)+(+c.cnt); });
   });
 }
-function renderRouting(){
-  document.getElementById("rt-forms").hidden = RT_TAB!=="forms";
-  document.getElementById("rt-agents").hidden = RT_TAB!=="agents";
-  document.querySelectorAll(".rtab").forEach(t=>t.classList.toggle("on",t.dataset.rtab===RT_TAB));
-  if(RT_TAB==="agents") renderRtAgents(); else renderRtForms();
-}
+function rtBrands(){ var s=new Set(brandOpts()); RT_AGENTS.forEach(a=>a.brand&&s.add(a.brand)); RT_FORMS.forEach(f=>f.brand&&s.add(f.brand)); return [...s]; }
+function agentOf(id){ return RT_AGENTS.find(a=>a.id===id); }
+function poolOf(fid){ return RT_FA.filter(x=>x.form_id===fid).sort((a,b)=>a.sort-b.sort); }
+function formOK(f){ return !RT_BRAND || f.brand===RT_BRAND; }
+function agentOK(a){ return !RT_BRAND || a.brand===RT_BRAND; }
+function formsCountOf(aid){ return new Set(RT_FA.filter(x=>x.agent_id===aid).map(x=>x.form_id)).size; }
+function brandSelHTML(cur){ return '<option value="">—</option>'+rtBrands().map(b=>selOpt(b,b,cur||"")).join(""); }
+function langSelHTML(cur){ return '<option value="">—</option>'+langOpts().map(l=>selOpt(l,(LANGNAME[l]||l),cur||"")).join(""); }
+
 function openRouting(){
+  RT_TAB="forms"; RT_SEL=null; RT_BRAND="";
   document.getElementById("routing-modal").classList.add("on");
   document.getElementById("rt-forms").innerHTML='<div class="rt-empty">Yükleniyor…</div>';
-  loadRouting().then(renderRouting).catch(e=>toast("Yüklenemedi: "+e.message));
+  loadRouting().then(function(){ if(RT_FORMS.length) RT_SEL=RT_FORMS[0].id; renderBrandFilter(); renderRouting(); }).catch(e=>toast("Yüklenemedi: "+e.message));
 }
-function renderRtAgents(){
-  var box=document.getElementById("rt-agents");
-  box.innerHTML = (RT_AGENTS.length?RT_AGENTS.map(function(a){
-    return '<div class="rt-card" data-aid="'+a.id+'"><div class="rt-row">'+
-      '<input class="a-name" value="'+esc(a.name)+'" placeholder="Ad">'+
-      '<input class="a-phone mono" value="'+esc(a.phone)+'" placeholder="90…">'+
-      '<input class="a-bitrix mono" value="'+esc(a.bitrix_id||"")+'" placeholder="Bitrix ID">'+
-      '<button class="rt-add a-save">Kaydet</button>'+
-      '<button class="x a-del" title="Sil">✕</button></div></div>';
-  }).join(""):'<div class="rt-empty">Henüz danışman yok.</div>') +
-    '<div class="rt-card"><div class="rh"><span class="nm">+ Yeni danışman</span></div><div class="rt-row">'+
-    '<input id="na-name" placeholder="Ad"><input id="na-phone" class="mono" placeholder="90…">'+
-    '<input id="na-bitrix" class="mono" placeholder="Bitrix ID"><button class="rt-add" id="na-add">Ekle</button></div></div>';
+function renderBrandFilter(){ document.getElementById("rt-brandfilter").innerHTML='<option value="">Tüm markalar</option>'+rtBrands().map(b=>selOpt(b,b,RT_BRAND)).join(""); }
+function renderRouting(){
+  document.getElementById("rt-forms").hidden=RT_TAB!=="forms";
+  document.getElementById("rt-agents").hidden=RT_TAB!=="agents";
+  document.getElementById("rt-matrix").hidden=RT_TAB!=="matrix";
+  document.querySelectorAll(".rtab").forEach(t=>t.classList.toggle("on",t.dataset.rtab===RT_TAB));
+  if(RT_TAB==="forms") renderForms(); else if(RT_TAB==="agents") renderAgents(); else renderMatrix();
 }
-function renderRtForms(){
-  var box=document.getElementById("rt-forms");
-  box.innerHTML = (RT_FORMS.length?RT_FORMS.map(function(f){
-    var pool=RT_FA.filter(x=>x.form_id===f.id).sort((a,b)=>a.sort-b.sort);
-    var len=pool.length, n=RT_CT[f.id];
-    var nextIdx = len? (n===undefined?0:((n+1)%len)) : null;
-    var nextName = (nextIdx!==null)? (agentName(pool[nextIdx].agent_id)||"?") : "—";
-    var open=!!RT_OPEN[f.id];
-    var detail="";
-    if(open){
-      detail='<div class="rt-pool">'+ RT_AGENTS.map(function(a){
-        var inp=pool.find(p=>p.agent_id===a.id);
-        return '<label class="pa" data-aid="'+a.id+'"><input type="checkbox"'+(inp?" checked":"")+'>'+
-          '<input class="ord mono" type="number" value="'+(inp?inp.sort:100)+'">'+
-          '<span class="pn">'+esc(a.name)+'</span><span class="pp">'+esc(a.phone)+'</span></label>';
-      }).join("") +
-      (RT_AGENTS.length?'<button class="rt-save" data-fid="'+f.id+'">Havuzu kaydet</button>':'<div class="rt-empty">Önce Danışmanlar sekmesinden danışman ekle.</div>')+
-      '<div class="rt-recent" id="rt-recent-'+f.id+'">Son atamalar yükleniyor…</div></div>';
-    }
-    return '<div class="rt-card" data-fid="'+f.id+'"><div class="rh rt-head" style="cursor:pointer">'+
-      '<span class="nm">'+esc(f.name)+'</span><span class="fid">'+esc(f.form_id)+'</span>'+
-      '<span class="sp">havuz '+len+' · sıradaki: '+esc(nextName)+'</span>'+
-      '<button class="x f-del" title="Sil">✕</button></div>'+detail+'</div>';
-  }).join(""):'<div class="rt-empty">Henüz form yok.</div>') +
-    '<div class="rt-card"><div class="rh"><span class="nm">+ Yeni form</span></div><div class="rt-row">'+
-    '<input id="nf-name" placeholder="Form adı"><input id="nf-id" class="mono" placeholder="Meta form ID">'+
-    '<button class="rt-add" id="nf-add">Oluştur</button></div></div>';
-  Object.keys(RT_OPEN).forEach(function(fid){ if(RT_OPEN[fid]) loadRecent(+fid); });
+function rtReload(keep){ var s=RT_SEL; return loadRouting().then(function(){ if(keep) RT_SEL=s; renderBrandFilter(); renderRouting(); }); }
+
+/* ---- FORMS ---- */
+function renderForms(){
+  var forms=RT_FORMS.filter(formOK);
+  if(RT_SEL && !forms.some(f=>f.id===RT_SEL)) RT_SEL=forms.length?forms[0].id:null;
+  var list=forms.length? forms.map(function(f){
+    var pool=poolOf(f.id), n=RT_CT[f.id];
+    var nextName=pool.length?((agentOf(pool[(n===undefined?0:(n+1)%pool.length)].agent_id)||{}).name||"?"):"—";
+    return '<div class="rt-fi'+(f.id===RT_SEL?' on':'')+'" data-fid="'+f.id+'">'+
+      '<div class="t"><span class="dotm'+(f.active!==false?' act':'')+'"></span>'+esc(f.name)+'</div>'+
+      '<div class="m">'+(f.brand?'<span class="chip">'+esc(f.brand)+'</span>':'')+(f.lang?'<span>'+esc(LANGNAME[f.lang]||f.lang)+'</span>':'')+'<span>havuz '+pool.length+'</span><span>→ '+esc(nextName)+'</span></div>'+
+      '<div class="m"><span class="fid">'+esc(f.form_id)+'</span></div></div>';
+  }).join(""):'<div class="rt-empty">Bu markada form yok.</div>';
+  var add='<div class="rt-addrow"><div class="fl"><label>Form adı</label><input id="nf-name" placeholder="örn. RoyalHair IT"></div>'+
+    '<div class="fl"><label>Meta form ID</label><input id="nf-id" class="mono" placeholder="123456789"></div>'+
+    '<button class="rt-add" id="nf-add">Form ekle</button></div>';
+  var detail=RT_SEL? formDetailHTML(RT_FORMS.find(f=>f.id===RT_SEL)) : '<div class="rt-empty">Soldan form seç ya da yeni form ekle.</div>';
+  document.getElementById("rt-forms").innerHTML='<div class="rt-split"><div><div class="rt-list">'+list+'</div>'+add+'</div><div class="rt-detail" id="rt-detail">'+detail+'</div></div>';
+  if(RT_SEL) loadRecent(RT_SEL);
 }
-function agentName(id){var a=RT_AGENTS.find(x=>x.id===id);return a?a.name:null;}
+function formDetailHTML(f){
+  if(!f) return '';
+  var pool=poolOf(f.id), n=RT_CT[f.id];
+  var nextIdx=pool.length?(n===undefined?0:(n+1)%pool.length):-1;
+  var counts=RT_COUNTS[f.form_id]||{};
+  var poolHTML=pool.length? pool.map(function(p,i){
+    var a=agentOf(p.agent_id)||{name:"(silinmiş)",phone:""}; var c=counts[p.agent_id]||0;
+    return '<div class="rt-pa'+(i===nextIdx?' next':'')+'" data-aid="'+p.agent_id+'"><span class="idx">'+(i+1)+'</span>'+
+      '<span class="pn">'+esc(a.name)+(i===nextIdx?' <span class="chip on">sıradaki</span>':'')+'</span>'+
+      '<span class="pp">'+esc(a.phone||"")+'</span><span class="lead">'+c+' lead</span>'+
+      '<button class="mv" data-mv="up" title="Yukarı">↑</button><button class="mv" data-mv="dn" title="Aşağı">↓</button>'+
+      '<button class="rm" title="Havuzdan çıkar">✕</button></div>';
+  }).join(""):'<div class="rt-empty">Havuz boş — sağdan danışman ekle.</div>';
+  var inPool=new Set(pool.map(p=>p.agent_id));
+  var avail=RT_AGENTS.filter(a=>!inPool.has(a.id) && (!RT_BRAND||a.brand===RT_BRAND));
+  avail.sort((a,b)=>((b.brand===f.brand)-(a.brand===f.brand))||String(a.name).localeCompare(b.name));
+  var availHTML=avail.length? avail.map(a=>'<div class="rt-av" data-aid="'+a.id+'"><span class="pn">'+esc(a.name)+(a.brand?' <span class="chip">'+esc(a.brand)+'</span>':'')+'</span><span class="pp">'+esc(a.phone)+'</span><span class="add">+ ekle</span></div>').join(""):'<div class="rt-empty">Eklenecek danışman yok.</div>';
+  return '<h4>'+esc(f.name)+'</h4><div style="font-size:12px;color:var(--muted)">Her form kendi sırasını tutar. Değişiklikler anında kaydedilir; mevcut linkleri/numaraları etkilemez.</div>'+
+    '<div class="rt-fields">'+
+      '<div class="fl"><label>Form adı</label><input class="fd-name" value="'+esc(f.name)+'"></div>'+
+      '<div class="fl"><label>Meta form ID</label><input class="fd-fid mono" value="'+esc(f.form_id)+'"></div>'+
+      '<div class="fl"><label>Marka</label><select class="fd-brand">'+brandSelHTML(f.brand)+'</select></div>'+
+      '<div class="fl"><label>Dil</label><select class="fd-lang">'+langSelHTML(f.lang)+'</select></div>'+
+      '<div class="fl"><label>Durum</label><select class="fd-active"><option value="1"'+(f.active!==false?' selected':'')+'>Aktif</option><option value="0"'+(f.active===false?' selected':'')+'>Pasif</option></select></div>'+
+      '<div class="fl"><label>&nbsp;</label><button class="rt-add fd-save">Kaydet</button></div>'+
+      '<div class="fl"><label>&nbsp;</label><button class="rt-ic del fd-del">Formu sil</button></div></div>'+
+    '<div class="rt-sec"><div class="lbl">Havuz (sıra)</div><div class="rt-two">'+
+      '<div class="rt-pool-list">'+poolHTML+'</div>'+
+      '<div><div class="lbl">Danışman ekle'+(RT_BRAND?' · '+esc(RT_BRAND):'')+'</div><div class="rt-avail">'+availHTML+'</div>'+
+      (pool.length?'<button class="rt-ic" id="rt-reset" style="margin-top:10px">Sırayı sıfırla</button>':'')+'</div></div></div>'+
+    '<div class="rt-sec"><div class="lbl">Son atamalar</div><div class="rt-recent" id="rt-recent">…</div></div>';
+}
 function loadRecent(fid){
   var f=RT_FORMS.find(x=>x.id===fid); if(!f) return;
-  authFetch("/wa_lead_log?meta_form_id=eq."+encodeURIComponent(f.form_id)+"&select=agent_name,created_at&order=created_at.desc&limit=8")
+  authFetch("/wa_lead_log?meta_form_id=eq."+encodeURIComponent(f.form_id)+"&select=agent_name,lead_phone,created_at&order=created_at.desc&limit=10")
     .then(r=>r.json()).then(function(rows){
-      var el=document.getElementById("rt-recent-"+fid); if(!el) return;
-      el.innerHTML = (rows&&rows.length)? "Son atamalar: "+rows.map(r=>esc(r.agent_name||"?")).join(" · ") : "Henüz atama yok.";
+      var el=document.getElementById("rt-recent"); if(!el) return;
+      if(!rows||!rows.length){ el.textContent="Henüz atama yok."; return; }
+      el.innerHTML=rows.map(function(r){ var d=new Date(r.created_at); var t=d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}); return '<div><b>'+esc(r.agent_name||"?")+'</b> · '+esc(r.lead_phone||"—")+' · '+t+'</div>'; }).join("");
     }).catch(()=>{});
 }
-function rtReload(){ return loadRouting().then(renderRouting); }
 
+/* ---- AGENTS ---- */
+function renderAgents(){
+  var ags=RT_AGENTS.filter(agentOK);
+  var rows=ags.length? ags.map(function(a){
+    return '<tr data-aid="'+a.id+'">'+
+      '<td><input class="a-name" value="'+esc(a.name)+'"></td>'+
+      '<td><input class="a-phone mono" value="'+esc(a.phone)+'"></td>'+
+      '<td><select class="a-brand">'+brandSelHTML(a.brand)+'</select></td>'+
+      '<td><select class="a-lang">'+langSelHTML(a.lang)+'</select></td>'+
+      '<td><input class="a-bitrix mono" value="'+esc(a.bitrix_id||"")+'"></td>'+
+      '<td style="text-align:center">'+formsCountOf(a.id)+'</td>'+
+      '<td class="ld">'+(RT_AGLD[a.id]||0)+'</td>'+
+      '<td><div class="act"><button class="rt-ic save a-save">Kaydet</button><button class="rt-ic del a-del">Sil</button></div></td></tr>';
+  }).join(""):'<tr><td colspan="8"><div class="rt-empty">Bu markada danışman yok.</div></td></tr>';
+  document.getElementById("rt-agents").innerHTML=
+    '<table class="rt-at"><thead><tr><th>Ad</th><th>Numara</th><th>Marka</th><th>Dil</th><th>Bitrix ID</th><th>Form</th><th>Lead</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="rt-addrow"><div class="fl"><label>Ad</label><input id="na-name" placeholder="Danışman adı"></div>'+
+      '<div class="fl"><label>Numara</label><input id="na-phone" class="mono" placeholder="90…"></div>'+
+      '<div class="fl"><label>Marka</label><select id="na-brand">'+brandSelHTML(RT_BRAND)+'</select></div>'+
+      '<div class="fl"><label>Dil</label><select id="na-lang">'+langSelHTML("")+'</select></div>'+
+      '<div class="fl"><label>Bitrix ID</label><input id="na-bitrix" class="mono" placeholder="örn. 42"></div>'+
+      '<button class="rt-add" id="na-add">Danışman ekle</button></div>';
+}
+
+/* ---- MATRIX ---- */
+function renderMatrix(){
+  var forms=RT_FORMS.filter(formOK), ags=RT_AGENTS.filter(agentOK);
+  if(!forms.length||!ags.length){ document.getElementById("rt-matrix").innerHTML='<div class="rt-empty">Matris için en az bir form ve bir danışman gerekir.</div>'; return; }
+  var head='<tr><th class="rowh">Form \\ Danışman</th>'+ags.map(a=>'<th class="colh">'+esc(a.name)+'</th>').join("")+'</tr>';
+  var body=forms.map(function(f){
+    var idx={}; poolOf(f.id).forEach((p,i)=>idx[p.agent_id]=i+1);
+    return '<tr><td class="rowh">'+esc(f.name)+'</td>'+ags.map(function(a){ var v=idx[a.id]; return '<td class="cell'+(v?' in':'')+'" data-fid="'+f.id+'" data-aid="'+a.id+'">'+(v?v:'·')+'</td>'; }).join("")+'</tr>';
+  }).join("");
+  document.getElementById("rt-matrix").innerHTML='<div class="rt-mx-wrap"><table class="rt-mx"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
+    '<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Hücreye tıkla: havuza ekle / çıkar. Sayı = sıra konumu.</div>';
+}
+
+/* ---- pool mutation ---- */
+function savePool(fid, orderedIds){
+  var rows=orderedIds.map((aid,i)=>({form_id:fid,agent_id:aid,sort:(i+1)*10}));
+  var del="/wa_form_agents?form_id=eq."+fid+(orderedIds.length?"&agent_id=not.in.("+orderedIds.join(",")+")":"");
+  return authFetch(del,{method:"DELETE"})
+    .then(()=> orderedIds.length? authFetch("/wa_form_agents?on_conflict=form_id,agent_id",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(rows)}):Promise.resolve())
+    .then(()=>rtReload(true)).catch(e=>toast(e.message));
+}
+function curPoolIds(fid){ return poolOf(fid).map(p=>p.agent_id); }
+
+/* ---- wiring ---- */
 document.getElementById("routing-btn").onclick=openRouting;
 document.getElementById("routing-close").onclick=()=>document.getElementById("routing-modal").classList.remove("on");
-document.querySelectorAll(".rtab").forEach(t=>t.onclick=function(){RT_TAB=this.dataset.rtab;renderRouting();});
+document.querySelectorAll(".rtab").forEach(t=>t.onclick=function(){ RT_TAB=this.dataset.rtab; renderRouting(); });
+document.getElementById("rt-brandfilter").onchange=function(){ RT_BRAND=this.value; RT_SEL=null; renderRouting(); };
+
 document.getElementById("routing-modal").addEventListener("click",function(e){
-  var head=e.target.closest(".rt-head");
-  if(head){ var fid=+head.parentElement.dataset.fid; RT_OPEN[fid]=!RT_OPEN[fid]; renderRtForms(); return; }
   var t=e.target;
-  if(t.id==="na-add"){
-    var nm=document.getElementById("na-name").value.trim(), ph=digits(document.getElementById("na-phone").value), bx=document.getElementById("na-bitrix").value.trim();
-    if(!nm||!ph){toast("Ad ve numara gerekli");return;}
-    authFetch("/wa_agents",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({name:nm,phone:ph,bitrix_id:bx||null})})
-      .then(r=>{if(!r.ok)throw new Error("Eklenemedi (numara zaten var olabilir)");return rtReload();}).then(()=>toast("Danışman eklendi")).catch(e=>toast(e.message)); return;
+  // add form
+  if(t.id==="nf-add"){
+    var nm=val("nf-name"), fid=val("nf-id");
+    if(!nm||!fid){ toast("Form adı ve Meta form ID gerekli"); return; }
+    authFetch("/wa_forms?select=id",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify({name:nm,form_id:fid,brand:RT_BRAND||null})})
+      .then(async r=>{ if(!r.ok) throw new Error("Oluşturulamadı (form ID zaten var olabilir)"); var j=await r.json(); RT_SEL=(j[0]&&j[0].id)||RT_SEL; return rtReload(true); })
+      .then(()=>toast("Form eklendi")).catch(e=>toast(e.message)); return;
   }
+  // add agent
+  if(t.id==="na-add"){
+    var an=val("na-name"), ap=digits(val("na-phone")), ab=val("na-bitrix"), abr=val("na-brand"), al=val("na-lang");
+    if(!an||!ap){ toast("Ad ve numara gerekli"); return; }
+    authFetch("/wa_agents",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({name:an,phone:ap,bitrix_id:ab||null,brand:abr||null,lang:al||null})})
+      .then(r=>{ if(!r.ok) throw new Error("Eklenemedi (numara zaten var olabilir)"); return rtReload(true); })
+      .then(()=>toast("Danışman eklendi")).catch(e=>toast(e.message)); return;
+  }
+  // agent save/delete
   if(t.classList.contains("a-save")){
-    var card=t.closest(".rt-card"), aid=+card.dataset.aid;
-    var body={name:card.querySelector(".a-name").value.trim(),phone:digits(card.querySelector(".a-phone").value),bitrix_id:card.querySelector(".a-bitrix").value.trim()||null};
-    authFetch("/wa_agents?id=eq."+aid,{method:"PATCH",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(body)})
-      .then(r=>{if(!r.ok)throw new Error("Kaydedilemedi");return rtReload();}).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
+    var tr=t.closest("tr"), aid=+tr.dataset.aid;
+    var b={ name:tr.querySelector(".a-name").value.trim(), phone:digits(tr.querySelector(".a-phone").value), bitrix_id:tr.querySelector(".a-bitrix").value.trim()||null, brand:tr.querySelector(".a-brand").value||null, lang:tr.querySelector(".a-lang").value||null };
+    authFetch("/wa_agents?id=eq."+aid,{method:"PATCH",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(b)})
+      .then(r=>{ if(!r.ok) throw new Error("Kaydedilemedi"); return rtReload(true); }).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
   }
   if(t.classList.contains("a-del")){
-    var card2=t.closest(".rt-card"), aid2=+card2.dataset.aid;
-    if(!confirm("Bu danışman silinsin mi? Bağlı olduğu form havuzlarından da çıkar."))return;
-    authFetch("/wa_agents?id=eq."+aid2,{method:"DELETE"}).then(()=>rtReload()).then(()=>toast("Silindi")).catch(e=>toast(e.message)); return;
+    var aid2=+t.closest("tr").dataset.aid;
+    if(!confirm("Bu danışman silinsin mi? Bağlı olduğu tüm form havuzlarından da çıkar."))return;
+    authFetch("/wa_agents?id=eq."+aid2,{method:"DELETE"}).then(()=>rtReload(true)).then(()=>toast("Silindi")).catch(e=>toast(e.message)); return;
   }
-  if(t.id==="nf-add"){
-    var fnm=document.getElementById("nf-name").value.trim(), fid2=document.getElementById("nf-id").value.trim();
-    if(!fnm||!fid2){toast("Form adı ve Meta form ID gerekli");return;}
-    authFetch("/wa_forms",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({name:fnm,form_id:fid2})})
-      .then(r=>{if(!r.ok)throw new Error("Oluşturulamadı (form ID zaten var olabilir)");return rtReload();}).then(()=>toast("Form oluşturuldu")).catch(e=>toast(e.message)); return;
+  // form detail save/delete
+  if(t.classList.contains("fd-save")){
+    var d=document.getElementById("rt-detail");
+    var b2={ name:d.querySelector(".fd-name").value.trim(), form_id:d.querySelector(".fd-fid").value.trim(), brand:d.querySelector(".fd-brand").value||null, lang:d.querySelector(".fd-lang").value||null, active:d.querySelector(".fd-active").value==="1" };
+    if(!b2.name||!b2.form_id){ toast("Form adı ve Meta form ID gerekli"); return; }
+    authFetch("/wa_forms?id=eq."+RT_SEL,{method:"PATCH",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(b2)})
+      .then(r=>{ if(!r.ok) throw new Error("Kaydedilemedi (form ID çakışabilir)"); return rtReload(true); }).then(()=>toast("Form kaydedildi")).catch(e=>toast(e.message)); return;
   }
-  if(t.classList.contains("f-del")){
-    var fcard=t.closest(".rt-card"), fid3=+fcard.dataset.fid;
-    if(!confirm("Bu form silinsin mi? Havuzu ve sırası da silinir (lead geçmişi kalır)."))return;
-    authFetch("/wa_forms?id=eq."+fid3,{method:"DELETE"}).then(()=>{delete RT_OPEN[fid3];return rtReload();}).then(()=>toast("Form silindi")).catch(e=>toast(e.message)); return;
+  if(t.classList.contains("fd-del")){
+    if(!confirm("Bu form silinsin mi? Havuzu ve sırası silinir (lead geçmişi kalır)."))return;
+    var del=RT_SEL;
+    authFetch("/wa_forms?id=eq."+del,{method:"DELETE"}).then(()=>{ RT_SEL=null; return rtReload(false); }).then(()=>toast("Form silindi")).catch(e=>toast(e.message)); return;
   }
-  if(t.classList.contains("rt-save")){
-    var fid4=+t.dataset.fid, pool=t.closest(".rt-pool");
-    var sel=[...pool.querySelectorAll(".pa")].filter(p=>p.querySelector("input[type=checkbox]").checked)
-      .map(p=>({form_id:fid4,agent_id:+p.dataset.aid,sort:parseInt(p.querySelector(".ord").value,10)||100}));
-    authFetch("/wa_form_agents?form_id=eq."+fid4,{method:"DELETE"})
-      .then(()=> sel.length? authFetch("/wa_form_agents",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(sel)}):Promise.resolve())
-      .then(()=>rtReload()).then(()=>toast("Havuz kaydedildi")).catch(e=>toast(e.message)); return;
+  // reset rotation
+  if(t.id==="rt-reset"){
+    if(!confirm("Sıra sıfırlansın mı? Sıradaki atama havuzun başından başlar."))return;
+    authFetch("/wa_form_counters?form_id=eq."+RT_SEL,{method:"DELETE"}).then(()=>rtReload(true)).then(()=>toast("Sıra sıfırlandı")).catch(e=>toast(e.message)); return;
   }
-  var ov=e.target.closest(".overlay"); if(ov&&e.target===ov)ov.classList.remove("on");
+  // pool reorder
+  if(t.classList.contains("mv")){
+    var aidM=+t.closest(".rt-pa").dataset.aid, ids=curPoolIds(RT_SEL), i=ids.indexOf(aidM), j=t.dataset.mv==="up"?i-1:i+1;
+    if(j<0||j>=ids.length) return; var tmp=ids[i]; ids[i]=ids[j]; ids[j]=tmp; savePool(RT_SEL,ids); return;
+  }
+  // pool remove
+  if(t.classList.contains("rm")){
+    var aidR=+t.closest(".rt-pa").dataset.aid; savePool(RT_SEL, curPoolIds(RT_SEL).filter(x=>x!==aidR)); return;
+  }
+  // pool add (available)
+  var av=t.closest(".rt-av");
+  if(av){ var aidA=+av.dataset.aid; savePool(RT_SEL, curPoolIds(RT_SEL).concat([aidA])); return; }
+  // matrix toggle
+  var cell=t.closest(".cell");
+  if(cell){ var cf=+cell.dataset.fid, ca=+cell.dataset.aid, ids2=curPoolIds(cf); savePool(cf, ids2.includes(ca)? ids2.filter(x=>x!==ca) : ids2.concat([ca])); return; }
+  // select form
+  var fi=t.closest(".rt-fi");
+  if(fi){ RT_SEL=+fi.dataset.fid; renderForms(); return; }
+  // backdrop close
+  var ov=t.closest(".overlay"); if(ov&&t===ov) ov.classList.remove("on");
 });
+function val(id){ var e=document.getElementById(id); return e? e.value.trim() : ""; }
 
 document.getElementById("labels-btn").onclick=function(){renderLabels();document.getElementById("lbl-modal").classList.add("on");};
 document.getElementById("lbl-close").onclick=()=>document.getElementById("lbl-modal").classList.remove("on");
