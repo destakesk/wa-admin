@@ -175,6 +175,13 @@
   .rt-addrow .fl { display:flex; flex-direction:column; gap:3px; } .rt-addrow label { font-size:10.5px; color:var(--muted); font-weight:600; }
   .rt-addrow input, .rt-addrow select { font:inherit; font-size:13px; color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 9px; }
   .rt-empty { color:var(--muted); font-size:13px; padding:18px 0; text-align:center; }
+  /* inline enrichment in pool rows */
+  .rt-pa input { font:inherit; font-size:12.5px; color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:7px; padding:5px 7px; }
+  .rt-pa .pe-name { flex:1; min-width:64px; }
+  .rt-pa .pe-bx { width:94px; flex:none; }
+  .rt-pa .pp { min-width:108px; }
+  .rt-pa.warn .pe-bx, .rt-at tr.warn .n-bx { border-color:var(--err); }
+  .rt-pa .lead { min-width:20px; text-align:center; }
 </style>
 </head>
 <body>
@@ -258,15 +265,13 @@
   <div class="rtw-bar">
     <div class="rtabs">
       <button class="rtab on" data-rtab="forms">Formlar</button>
-      <button class="rtab" data-rtab="agents">Danışmanlar</button>
-      <button class="rtab" data-rtab="matrix">Matris</button>
+      <button class="rtab" data-rtab="numbers">Numaralar</button>
     </div>
     <label class="rt-bf"><span>Marka</span><select id="rt-brandfilter"></select></label>
   </div>
   <div class="rtw-body">
     <div id="rt-forms" class="rt-pane"></div>
-    <div id="rt-agents" class="rt-pane" hidden></div>
-    <div id="rt-matrix" class="rt-pane" hidden></div>
+    <div id="rt-numbers" class="rt-pane" hidden></div>
   </div>
 </div></div>
 
@@ -659,61 +664,76 @@ function delLabel(kind,value){
   authFetch("/wa_labels?kind=eq."+encodeURIComponent(kind)+"&value=eq."+encodeURIComponent(value),{method:"DELETE"})
     .then(()=>loadLabels()).then(()=>{renderLabels();renderFilters();toast("Removed");}).catch(e=>toast(e.message));
 }
-/* ===== Lead Routing workspace ===== */
-var RT_AGENTS=[], RT_FORMS=[], RT_FA=[], RT_CT={}, RT_COUNTS={}, RT_AGLD={}, RT_TAB="forms", RT_SEL=null, RT_BRAND="";
+/* ===== Lead Routing workspace (link-tabanlı) ===== */
+/* Danışman = linklerin içindeki numara. Havuz = formun bağlı linkinin numaraları (salt-okunur).
+   Her numara wa_agents'te isim + Bitrix ID ile zenginleştirilir (telefon bazlı). */
+var RT_FORMS=[], RT_ENRICH={}, RT_CT={}, RT_COUNTS={}, RT_TAB="forms", RT_SEL=null, RT_BRAND="", RT_NQ="";
 
 function loadRouting(){
   return Promise.all([
-    authFetch("/wa_agents?select=id,name,phone,bitrix_id,brand,lang,active&order=name").then(r=>r.json()),
-    authFetch("/wa_forms?select=id,form_id,name,brand,lang,active&order=name").then(r=>r.json()),
-    authFetch("/wa_form_agents?select=form_id,agent_id,sort").then(r=>r.json()),
+    authFetch("/wa_forms?select=id,form_id,name,link_slug,active&order=name").then(r=>r.json()),
+    authFetch("/wa_agents?select=id,name,phone,bitrix_id").then(r=>r.json()),
     authFetch("/wa_form_counters?select=form_id,n").then(r=>r.json()),
     authFetch("/rpc/wa_lead_counts",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"}).then(r=>r.ok?r.json():[]).catch(()=>[])
   ]).then(function(res){
-    RT_AGENTS=res[0]||[]; RT_FORMS=res[1]||[]; RT_FA=res[2]||[]; RT_CT={}; RT_COUNTS={}; RT_AGLD={};
-    (res[3]||[]).forEach(c=>{RT_CT[c.form_id]=c.n;});
-    (res[4]||[]).forEach(function(c){ (RT_COUNTS[c.meta_form_id]=RT_COUNTS[c.meta_form_id]||{})[c.agent_id]=+c.cnt; RT_AGLD[c.agent_id]=(RT_AGLD[c.agent_id]||0)+(+c.cnt); });
+    RT_FORMS=res[0]||[];
+    RT_ENRICH={}; (res[1]||[]).forEach(a=>{RT_ENRICH[String(a.phone)]=a;});
+    RT_CT={}; (res[2]||[]).forEach(c=>{RT_CT[c.form_id]=c.n;});
+    RT_COUNTS={}; (res[3]||[]).forEach(c=>{ (RT_COUNTS[c.meta_form_id]=RT_COUNTS[c.meta_form_id]||{})[String(c.phone)]=+c.cnt; });
   });
 }
-function rtBrands(){ var s=new Set(brandOpts()); RT_AGENTS.forEach(a=>a.brand&&s.add(a.brand)); RT_FORMS.forEach(f=>f.brand&&s.add(f.brand)); return [...s]; }
-function agentOf(id){ return RT_AGENTS.find(a=>a.id===id); }
-function poolOf(fid){ return RT_FA.filter(x=>x.form_id===fid).sort((a,b)=>a.sort-b.sort); }
-function formOK(f){ return !RT_BRAND || f.brand===RT_BRAND; }
-function agentOK(a){ return !RT_BRAND || a.brand===RT_BRAND; }
-function formsCountOf(aid){ return new Set(RT_FA.filter(x=>x.agent_id===aid).map(x=>x.form_id)).size; }
-function brandSelHTML(cur){ return '<option value="">—</option>'+rtBrands().map(b=>selOpt(b,b,cur||"")).join(""); }
-function langSelHTML(cur){ return '<option value="">—</option>'+langOpts().map(l=>selOpt(l,(LANGNAME[l]||l),cur||"")).join(""); }
+function siteOf(slug){ return SITES.find(s=>s.slug===slug); }
+function numbersOf(slug){ var s=siteOf(slug); return s&&Array.isArray(s.numbers)?s.numbers.map(String):[]; }
+function enr(ph){ return RT_ENRICH[String(ph)]||null; }
+function phoneName(ph){ var e=enr(ph); return e&&e.name?e.name:null; }
+function formBrand(f){ var s=siteOf(f.link_slug); return s?s.brand:null; }
+function formOK(f){ return !RT_BRAND || formBrand(f)===RT_BRAND; }
+function allNumbers(){
+  var m={};
+  SITES.forEach(function(s){ (Array.isArray(s.numbers)?s.numbers:[]).forEach(function(ph){ ph=String(ph);
+    var e=m[ph]||(m[ph]={phone:ph,slugs:[],brands:new Set()}); e.slugs.push(s.slug); if(s.brand)e.brands.add(s.brand); }); });
+  return Object.keys(m).map(k=>m[k]);
+}
+function linkSelHTML(cur){
+  var by={}; SITES.forEach(s=>{(by[s.brand||"—"]=by[s.brand||"—"]||[]).push(s);});
+  var h='<option value="">— link seç —</option>';
+  Object.keys(by).sort().forEach(function(b){ h+='<optgroup label="'+esc(b)+'">';
+    by[b].sort((x,y)=>x.slug.localeCompare(y.slug)).forEach(s=>{ h+='<option value="'+esc(s.slug)+'"'+(cur===s.slug?' selected':'')+'>'+esc(s.slug)+' ('+(Array.isArray(s.numbers)?s.numbers.length:0)+' no)</option>'; });
+    h+='</optgroup>'; });
+  return h;
+}
 
 function openRouting(){
-  RT_TAB="forms"; RT_SEL=null; RT_BRAND="";
+  RT_TAB="forms"; RT_SEL=null; RT_BRAND=""; RT_NQ="";
   document.getElementById("routing-modal").classList.add("on");
   document.getElementById("rt-forms").innerHTML='<div class="rt-empty">Yükleniyor…</div>';
-  loadRouting().then(function(){ if(RT_FORMS.length) RT_SEL=RT_FORMS[0].id; renderBrandFilter(); renderRouting(); }).catch(e=>toast("Yüklenemedi: "+e.message));
+  loadRouting().then(function(){ var ff=RT_FORMS.filter(formOK); if(ff.length)RT_SEL=ff[0].id; renderBrandFilter(); renderRouting(); }).catch(e=>toast("Yüklenemedi: "+e.message));
 }
-function renderBrandFilter(){ document.getElementById("rt-brandfilter").innerHTML='<option value="">Tüm markalar</option>'+rtBrands().map(b=>selOpt(b,b,RT_BRAND)).join(""); }
+function renderBrandFilter(){ var s=document.getElementById("rt-brandfilter"); s.innerHTML=selOpt("","Tüm markalar",RT_BRAND)+brandOpts().map(b=>selOpt(b,b,RT_BRAND)).join(""); s.value=RT_BRAND; }
 function renderRouting(){
   document.getElementById("rt-forms").hidden=RT_TAB!=="forms";
-  document.getElementById("rt-agents").hidden=RT_TAB!=="agents";
-  document.getElementById("rt-matrix").hidden=RT_TAB!=="matrix";
+  document.getElementById("rt-numbers").hidden=RT_TAB!=="numbers";
   document.querySelectorAll(".rtab").forEach(t=>t.classList.toggle("on",t.dataset.rtab===RT_TAB));
-  if(RT_TAB==="forms") renderForms(); else if(RT_TAB==="agents") renderAgents(); else renderMatrix();
+  if(RT_TAB==="forms") renderForms(); else renderNumbers();
 }
-function rtReload(keep){ var s=RT_SEL; return loadRouting().then(function(){ if(keep) RT_SEL=s; renderBrandFilter(); renderRouting(); }); }
+function rtReload(keep){ var s=RT_SEL; return loadRouting().then(function(){ if(keep)RT_SEL=s; renderBrandFilter(); renderRouting(); }); }
 
 /* ---- FORMS ---- */
 function renderForms(){
   var forms=RT_FORMS.filter(formOK);
   if(RT_SEL && !forms.some(f=>f.id===RT_SEL)) RT_SEL=forms.length?forms[0].id:null;
   var list=forms.length? forms.map(function(f){
-    var pool=poolOf(f.id), n=RT_CT[f.id];
-    var nextName=pool.length?((agentOf(pool[(n===undefined?0:(n+1)%pool.length)].agent_id)||{}).name||"?"):"—";
+    var nums=numbersOf(f.link_slug), n=RT_CT[f.id];
+    var nextPh=nums.length?nums[(n===undefined?0:(n+1)%nums.length)]:null;
+    var nextName=nextPh?(phoneName(nextPh)||nextPh):"—"; var br=formBrand(f);
     return '<div class="rt-fi'+(f.id===RT_SEL?' on':'')+'" data-fid="'+f.id+'">'+
       '<div class="t"><span class="dotm'+(f.active!==false?' act':'')+'"></span>'+esc(f.name)+'</div>'+
-      '<div class="m">'+(f.brand?'<span class="chip">'+esc(f.brand)+'</span>':'')+(f.lang?'<span>'+esc(LANGNAME[f.lang]||f.lang)+'</span>':'')+'<span>havuz '+pool.length+'</span><span>→ '+esc(nextName)+'</span></div>'+
+      '<div class="m">'+(br?'<span class="chip">'+esc(br)+'</span>':'')+(f.link_slug?'<span class="fid">'+esc(f.link_slug)+'</span>':'<span style="color:var(--err)">link yok</span>')+'<span>'+nums.length+' no</span><span>→ '+esc(nextName)+'</span></div>'+
       '<div class="m"><span class="fid">'+esc(f.form_id)+'</span></div></div>';
   }).join(""):'<div class="rt-empty">Bu markada form yok.</div>';
   var add='<div class="rt-addrow"><div class="fl"><label>Form adı</label><input id="nf-name" placeholder="örn. RoyalHair IT"></div>'+
     '<div class="fl"><label>Meta form ID</label><input id="nf-id" class="mono" placeholder="123456789"></div>'+
+    '<div class="fl" style="min-width:200px"><label>Bağlı link</label><select id="nf-link">'+linkSelHTML("")+'</select></div>'+
     '<button class="rt-add" id="nf-add">Form ekle</button></div>';
   var detail=RT_SEL? formDetailHTML(RT_FORMS.find(f=>f.id===RT_SEL)) : '<div class="rt-empty">Soldan form seç ya da yeni form ekle.</div>';
   document.getElementById("rt-forms").innerHTML='<div class="rt-split"><div><div class="rt-list">'+list+'</div>'+add+'</div><div class="rt-detail" id="rt-detail">'+detail+'</div></div>';
@@ -721,166 +741,111 @@ function renderForms(){
 }
 function formDetailHTML(f){
   if(!f) return '';
-  var pool=poolOf(f.id), n=RT_CT[f.id];
-  var nextIdx=pool.length?(n===undefined?0:(n+1)%pool.length):-1;
-  var counts=RT_COUNTS[f.form_id]||{};
-  var poolHTML=pool.length? pool.map(function(p,i){
-    var a=agentOf(p.agent_id)||{name:"(silinmiş)",phone:""}; var c=counts[p.agent_id]||0;
-    return '<div class="rt-pa'+(i===nextIdx?' next':'')+'" data-aid="'+p.agent_id+'"><span class="idx">'+(i+1)+'</span>'+
-      '<span class="pn">'+esc(a.name)+(i===nextIdx?' <span class="chip on">sıradaki</span>':'')+'</span>'+
-      '<span class="pp">'+esc(a.phone||"")+'</span><span class="lead">'+c+' lead</span>'+
-      '<button class="mv" data-mv="up" title="Yukarı">↑</button><button class="mv" data-mv="dn" title="Aşağı">↓</button>'+
-      '<button class="rm" title="Havuzdan çıkar">✕</button></div>';
-  }).join(""):'<div class="rt-empty">Havuz boş — sağdan danışman ekle.</div>';
-  var inPool=new Set(pool.map(p=>p.agent_id));
-  var avail=RT_AGENTS.filter(a=>!inPool.has(a.id) && (!RT_BRAND||a.brand===RT_BRAND));
-  avail.sort((a,b)=>((b.brand===f.brand)-(a.brand===f.brand))||String(a.name).localeCompare(b.name));
-  var availHTML=avail.length? avail.map(a=>'<div class="rt-av" data-aid="'+a.id+'"><span class="pn">'+esc(a.name)+(a.brand?' <span class="chip">'+esc(a.brand)+'</span>':'')+'</span><span class="pp">'+esc(a.phone)+'</span><span class="add">+ ekle</span></div>').join(""):'<div class="rt-empty">Eklenecek danışman yok.</div>';
-  return '<h4>'+esc(f.name)+'</h4><div style="font-size:12px;color:var(--muted)">Her form kendi sırasını tutar. Değişiklikler anında kaydedilir; mevcut linkleri/numaraları etkilemez.</div>'+
+  var nums=numbersOf(f.link_slug), n=RT_CT[f.id], len=nums.length;
+  var nextIdx=len?(n===undefined?0:(n+1)%len):-1;
+  var counts=RT_COUNTS[f.form_id]||{}, site=siteOf(f.link_slug);
+  var poolHTML = !f.link_slug ? '<div class="rt-empty">Önce bir link seç — havuz o linkin numaralarından gelir.</div>'
+    : !len ? '<div class="rt-empty">Seçili linkte numara yok.</div>'
+    : nums.map(function(ph,i){ var a=enr(ph)||{}, c=counts[ph]||0, miss=!a.bitrix_id;
+        return '<div class="rt-pa'+(i===nextIdx?' next':'')+(miss?' warn':'')+'" data-ph="'+esc(ph)+'">'+
+          '<span class="idx">'+(i+1)+'</span>'+
+          '<input class="pe-name" value="'+esc(a.name||"")+'" placeholder="isim">'+
+          '<span class="pp">'+esc(ph)+(i===nextIdx?' <span class="chip on">sıradaki</span>':'')+'</span>'+
+          '<input class="pe-bx mono" value="'+esc(a.bitrix_id||"")+'" placeholder="Bitrix ID">'+
+          '<span class="lead" title="bu numaraya giden lead">'+c+'</span>'+
+          '<button class="rt-ic save pe-save" title="isim + Bitrix ID kaydet">✓</button></div>';
+      }).join("");
+  return '<h4>'+esc(f.name)+'</h4>'+
+    '<div style="font-size:12px;color:var(--muted)">Havuz, bağlı linkin numaralarından gelir (salt-okunur). Her numaraya isim + Bitrix ID ekle. Sıra bu numaralar üzerinde döner; linkler/numaralar DEĞİŞMEZ.</div>'+
     '<div class="rt-fields">'+
       '<div class="fl"><label>Form adı</label><input class="fd-name" value="'+esc(f.name)+'"></div>'+
       '<div class="fl"><label>Meta form ID</label><input class="fd-fid mono" value="'+esc(f.form_id)+'"></div>'+
-      '<div class="fl"><label>Marka</label><select class="fd-brand">'+brandSelHTML(f.brand)+'</select></div>'+
-      '<div class="fl"><label>Dil</label><select class="fd-lang">'+langSelHTML(f.lang)+'</select></div>'+
+      '<div class="fl" style="min-width:220px"><label>Bağlı link</label><select class="fd-link">'+linkSelHTML(f.link_slug)+'</select></div>'+
       '<div class="fl"><label>Durum</label><select class="fd-active"><option value="1"'+(f.active!==false?' selected':'')+'>Aktif</option><option value="0"'+(f.active===false?' selected':'')+'>Pasif</option></select></div>'+
       '<div class="fl"><label>&nbsp;</label><button class="rt-add fd-save">Kaydet</button></div>'+
       '<div class="fl"><label>&nbsp;</label><button class="rt-ic del fd-del">Formu sil</button></div></div>'+
-    '<div class="rt-sec"><div class="lbl">Havuz (sıra)</div><div class="rt-two">'+
-      '<div class="rt-pool-list">'+poolHTML+'</div>'+
-      '<div><div class="lbl">Danışman ekle'+(RT_BRAND?' · '+esc(RT_BRAND):'')+'</div><div class="rt-avail">'+availHTML+'</div>'+
-      (pool.length?'<button class="rt-ic" id="rt-reset" style="margin-top:10px">Sırayı sıfırla</button>':'')+'</div></div></div>'+
+    (site?'<div style="font-size:11.5px;color:var(--muted);margin-top:2px">Bağlı link: <b>'+esc(site.slug)+'</b>'+(site.brand?' · '+esc(site.brand):'')+(site.lang?' · '+esc(LANGNAME[site.lang]||site.lang):'')+' · '+len+' numara</div>':'')+
+    '<div class="rt-sec"><div class="lbl">Havuz — linkin numaraları (sıra)'+(len?' · sıradaki vurgulu':'')+'</div><div class="rt-pool-list">'+poolHTML+'</div>'+
+      (len?'<button class="rt-ic" id="rt-reset" style="margin-top:10px">Sırayı sıfırla</button>':'')+'</div>'+
     '<div class="rt-sec"><div class="lbl">Son atamalar</div><div class="rt-recent" id="rt-recent">…</div></div>';
 }
 function loadRecent(fid){
   var f=RT_FORMS.find(x=>x.id===fid); if(!f) return;
-  authFetch("/wa_lead_log?meta_form_id=eq."+encodeURIComponent(f.form_id)+"&select=agent_name,lead_phone,created_at&order=created_at.desc&limit=10")
-    .then(r=>r.json()).then(function(rows){
-      var el=document.getElementById("rt-recent"); if(!el) return;
+  authFetch("/wa_lead_log?meta_form_id=eq."+encodeURIComponent(f.form_id)+"&select=agent_name,phone,lead_phone,created_at&order=created_at.desc&limit=10")
+    .then(r=>r.json()).then(function(rows){ var el=document.getElementById("rt-recent"); if(!el)return;
       if(!rows||!rows.length){ el.textContent="Henüz atama yok."; return; }
-      el.innerHTML=rows.map(function(r){ var d=new Date(r.created_at); var t=d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}); return '<div><b>'+esc(r.agent_name||"?")+'</b> · '+esc(r.lead_phone||"—")+' · '+t+'</div>'; }).join("");
+      el.innerHTML=rows.map(function(r){ var d=new Date(r.created_at); var t=d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}); return '<div><b>'+esc(r.agent_name||r.phone||"?")+'</b> · '+esc(r.lead_phone||"—")+' · '+t+'</div>'; }).join("");
     }).catch(()=>{});
 }
 
-/* ---- AGENTS ---- */
-function renderAgents(){
-  var ags=RT_AGENTS.filter(agentOK);
-  var rows=ags.length? ags.map(function(a){
-    return '<tr data-aid="'+a.id+'">'+
-      '<td><input class="a-name" value="'+esc(a.name)+'"></td>'+
-      '<td><input class="a-phone mono" value="'+esc(a.phone)+'"></td>'+
-      '<td><select class="a-brand">'+brandSelHTML(a.brand)+'</select></td>'+
-      '<td><select class="a-lang">'+langSelHTML(a.lang)+'</select></td>'+
-      '<td><input class="a-bitrix mono" value="'+esc(a.bitrix_id||"")+'"></td>'+
-      '<td style="text-align:center">'+formsCountOf(a.id)+'</td>'+
-      '<td class="ld">'+(RT_AGLD[a.id]||0)+'</td>'+
-      '<td><div class="act"><button class="rt-ic save a-save">Kaydet</button><button class="rt-ic del a-del">Sil</button></div></td></tr>';
-  }).join(""):'<tr><td colspan="8"><div class="rt-empty">Bu markada danışman yok.</div></td></tr>';
-  document.getElementById("rt-agents").innerHTML=
-    '<table class="rt-at"><thead><tr><th>Ad</th><th>Numara</th><th>Marka</th><th>Dil</th><th>Bitrix ID</th><th>Form</th><th>Lead</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div class="rt-addrow"><div class="fl"><label>Ad</label><input id="na-name" placeholder="Danışman adı"></div>'+
-      '<div class="fl"><label>Numara</label><input id="na-phone" class="mono" placeholder="90…"></div>'+
-      '<div class="fl"><label>Marka</label><select id="na-brand">'+brandSelHTML(RT_BRAND)+'</select></div>'+
-      '<div class="fl"><label>Dil</label><select id="na-lang">'+langSelHTML("")+'</select></div>'+
-      '<div class="fl"><label>Bitrix ID</label><input id="na-bitrix" class="mono" placeholder="örn. 42"></div>'+
-      '<button class="rt-add" id="na-add">Danışman ekle</button></div>';
-}
-
-/* ---- MATRIX ---- */
-function renderMatrix(){
-  var forms=RT_FORMS.filter(formOK), ags=RT_AGENTS.filter(agentOK);
-  if(!forms.length||!ags.length){ document.getElementById("rt-matrix").innerHTML='<div class="rt-empty">Matris için en az bir form ve bir danışman gerekir.</div>'; return; }
-  var head='<tr><th class="rowh">Form \\ Danışman</th>'+ags.map(a=>'<th class="colh">'+esc(a.name)+'</th>').join("")+'</tr>';
-  var body=forms.map(function(f){
-    var idx={}; poolOf(f.id).forEach((p,i)=>idx[p.agent_id]=i+1);
-    return '<tr><td class="rowh">'+esc(f.name)+'</td>'+ags.map(function(a){ var v=idx[a.id]; return '<td class="cell'+(v?' in':'')+'" data-fid="'+f.id+'" data-aid="'+a.id+'">'+(v?v:'·')+'</td>'; }).join("")+'</tr>';
+/* ---- NUMBERS (zenginleştirme) ---- */
+function renderNumbers(){
+  var nums=allNumbers().filter(e=> (!RT_BRAND||e.brands.has(RT_BRAND)) );
+  nums.sort((a,b)=>a.phone.localeCompare(b.phone));
+  var missing=nums.filter(e=>!(enr(e.phone)&&enr(e.phone).bitrix_id)).length;
+  var rows=nums.map(function(e){ var a=enr(e.phone)||{}, miss=!a.bitrix_id;
+    return '<tr data-ph="'+esc(e.phone)+'"'+(miss?' class="warn"':'')+'>'+
+      '<td class="mono">'+esc(e.phone)+'</td>'+
+      '<td><input class="n-name" value="'+esc(a.name||"")+'" placeholder="isim"></td>'+
+      '<td><input class="n-bx mono" value="'+esc(a.bitrix_id||"")+'" placeholder="Bitrix ID"></td>'+
+      '<td>'+[...e.brands].map(b=>'<span class="chip">'+esc(b)+'</span>').join(" ")+'</td>'+
+      '<td style="text-align:center">'+e.slugs.length+'</td>'+
+      '<td><button class="rt-ic save n-save">Kaydet</button></td></tr>';
   }).join("");
-  document.getElementById("rt-matrix").innerHTML='<div class="rt-mx-wrap"><table class="rt-mx"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
-    '<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Hücreye tıkla: havuza ekle / çıkar. Sayı = sıra konumu.</div>';
+  document.getElementById("rt-numbers").innerHTML=
+    '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap">'+
+      '<input id="n-search" placeholder="Numara ara…" value="'+esc(RT_NQ)+'" style="font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--page);color:var(--ink);min-width:180px">'+
+      '<span style="font-size:12px;color:var(--muted)">'+nums.length+' numara · <b style="color:'+(missing?'var(--err)':'var(--ok)')+'">'+missing+'</b> tanesinde Bitrix ID yok</span></div>'+
+    '<table class="rt-at"><thead><tr><th>Numara</th><th>İsim</th><th>Bitrix ID</th><th>Marka</th><th>Link</th><th></th></tr></thead><tbody>'+
+    (rows||'<tr><td colspan="6"><div class="rt-empty">Numara yok.</div></td></tr>')+'</tbody></table>';
+  if(RT_NQ) filterNumRows(RT_NQ);
 }
+function filterNumRows(q){ [...document.querySelectorAll("#rt-numbers tbody tr")].forEach(tr=>{ tr.style.display=(!q||(tr.dataset.ph||"").includes(q))?"":"none"; }); }
 
-/* ---- pool mutation ---- */
-function savePool(fid, orderedIds){
-  var rows=orderedIds.map((aid,i)=>({form_id:fid,agent_id:aid,sort:(i+1)*10}));
-  var del="/wa_form_agents?form_id=eq."+fid+(orderedIds.length?"&agent_id=not.in.("+orderedIds.join(",")+")":"");
-  return authFetch(del,{method:"DELETE"})
-    .then(()=> orderedIds.length? authFetch("/wa_form_agents?on_conflict=form_id,agent_id",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(rows)}):Promise.resolve())
-    .then(()=>rtReload(true)).catch(e=>toast(e.message));
+/* ---- enrichment upsert (telefon bazlı) ---- */
+function saveEnrich(phone, name, bitrix){
+  return authFetch("/wa_agents?on_conflict=phone",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{phone:phone,name:name||null,bitrix_id:bitrix||null}])})
+    .then(r=>{ if(!r.ok) throw new Error("Kaydedilemedi"); return rtReload(true); });
 }
-function curPoolIds(fid){ return poolOf(fid).map(p=>p.agent_id); }
 
 /* ---- wiring ---- */
 document.getElementById("routing-btn").onclick=openRouting;
 document.getElementById("routing-close").onclick=()=>document.getElementById("routing-modal").classList.remove("on");
 document.querySelectorAll(".rtab").forEach(t=>t.onclick=function(){ RT_TAB=this.dataset.rtab; renderRouting(); });
 document.getElementById("rt-brandfilter").onchange=function(){ RT_BRAND=this.value; RT_SEL=null; renderRouting(); };
+document.getElementById("routing-modal").addEventListener("input",function(e){ if(e.target.id==="n-search"){ RT_NQ=e.target.value.trim(); filterNumRows(RT_NQ); } });
 
 document.getElementById("routing-modal").addEventListener("click",function(e){
   var t=e.target;
-  // add form
   if(t.id==="nf-add"){
-    var nm=val("nf-name"), fid=val("nf-id");
+    var nm=val("nf-name"), fid=val("nf-id"), lk=val("nf-link");
     if(!nm||!fid){ toast("Form adı ve Meta form ID gerekli"); return; }
-    authFetch("/wa_forms?select=id",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify({name:nm,form_id:fid,brand:RT_BRAND||null})})
+    authFetch("/wa_forms?select=id",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify({name:nm,form_id:fid,link_slug:lk||null})})
       .then(async r=>{ if(!r.ok) throw new Error("Oluşturulamadı (form ID zaten var olabilir)"); var j=await r.json(); RT_SEL=(j[0]&&j[0].id)||RT_SEL; return rtReload(true); })
       .then(()=>toast("Form eklendi")).catch(e=>toast(e.message)); return;
   }
-  // add agent
-  if(t.id==="na-add"){
-    var an=val("na-name"), ap=digits(val("na-phone")), ab=val("na-bitrix"), abr=val("na-brand"), al=val("na-lang");
-    if(!an||!ap){ toast("Ad ve numara gerekli"); return; }
-    authFetch("/wa_agents",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({name:an,phone:ap,bitrix_id:ab||null,brand:abr||null,lang:al||null})})
-      .then(r=>{ if(!r.ok) throw new Error("Eklenemedi (numara zaten var olabilir)"); return rtReload(true); })
-      .then(()=>toast("Danışman eklendi")).catch(e=>toast(e.message)); return;
-  }
-  // agent save/delete
-  if(t.classList.contains("a-save")){
-    var tr=t.closest("tr"), aid=+tr.dataset.aid;
-    var b={ name:tr.querySelector(".a-name").value.trim(), phone:digits(tr.querySelector(".a-phone").value), bitrix_id:tr.querySelector(".a-bitrix").value.trim()||null, brand:tr.querySelector(".a-brand").value||null, lang:tr.querySelector(".a-lang").value||null };
-    authFetch("/wa_agents?id=eq."+aid,{method:"PATCH",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(b)})
-      .then(r=>{ if(!r.ok) throw new Error("Kaydedilemedi"); return rtReload(true); }).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
-  }
-  if(t.classList.contains("a-del")){
-    var aid2=+t.closest("tr").dataset.aid;
-    if(!confirm("Bu danışman silinsin mi? Bağlı olduğu tüm form havuzlarından da çıkar."))return;
-    authFetch("/wa_agents?id=eq."+aid2,{method:"DELETE"}).then(()=>rtReload(true)).then(()=>toast("Silindi")).catch(e=>toast(e.message)); return;
-  }
-  // form detail save/delete
   if(t.classList.contains("fd-save")){
     var d=document.getElementById("rt-detail");
-    var b2={ name:d.querySelector(".fd-name").value.trim(), form_id:d.querySelector(".fd-fid").value.trim(), brand:d.querySelector(".fd-brand").value||null, lang:d.querySelector(".fd-lang").value||null, active:d.querySelector(".fd-active").value==="1" };
-    if(!b2.name||!b2.form_id){ toast("Form adı ve Meta form ID gerekli"); return; }
-    authFetch("/wa_forms?id=eq."+RT_SEL,{method:"PATCH",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(b2)})
+    var b={ name:d.querySelector(".fd-name").value.trim(), form_id:d.querySelector(".fd-fid").value.trim(), link_slug:d.querySelector(".fd-link").value||null, active:d.querySelector(".fd-active").value==="1" };
+    if(!b.name||!b.form_id){ toast("Form adı ve Meta form ID gerekli"); return; }
+    authFetch("/wa_forms?id=eq."+RT_SEL,{method:"PATCH",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(b)})
       .then(r=>{ if(!r.ok) throw new Error("Kaydedilemedi (form ID çakışabilir)"); return rtReload(true); }).then(()=>toast("Form kaydedildi")).catch(e=>toast(e.message)); return;
   }
   if(t.classList.contains("fd-del")){
-    if(!confirm("Bu form silinsin mi? Havuzu ve sırası silinir (lead geçmişi kalır)."))return;
-    var del=RT_SEL;
-    authFetch("/wa_forms?id=eq."+del,{method:"DELETE"}).then(()=>{ RT_SEL=null; return rtReload(false); }).then(()=>toast("Form silindi")).catch(e=>toast(e.message)); return;
+    if(!confirm("Bu form silinsin mi? Sırası silinir (lead geçmişi kalır). Linklere/numaralara dokunulmaz."))return;
+    authFetch("/wa_forms?id=eq."+RT_SEL,{method:"DELETE"}).then(()=>{ RT_SEL=null; return rtReload(false); }).then(()=>toast("Form silindi")).catch(e=>toast(e.message)); return;
   }
-  // reset rotation
   if(t.id==="rt-reset"){
     if(!confirm("Sıra sıfırlansın mı? Sıradaki atama havuzun başından başlar."))return;
     authFetch("/wa_form_counters?form_id=eq."+RT_SEL,{method:"DELETE"}).then(()=>rtReload(true)).then(()=>toast("Sıra sıfırlandı")).catch(e=>toast(e.message)); return;
   }
-  // pool reorder
-  if(t.classList.contains("mv")){
-    var aidM=+t.closest(".rt-pa").dataset.aid, ids=curPoolIds(RT_SEL), i=ids.indexOf(aidM), j=t.dataset.mv==="up"?i-1:i+1;
-    if(j<0||j>=ids.length) return; var tmp=ids[i]; ids[i]=ids[j]; ids[j]=tmp; savePool(RT_SEL,ids); return;
+  if(t.classList.contains("pe-save")){
+    var row=t.closest(".rt-pa"); saveEnrich(row.dataset.ph, row.querySelector(".pe-name").value.trim(), row.querySelector(".pe-bx").value.trim()).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
   }
-  // pool remove
-  if(t.classList.contains("rm")){
-    var aidR=+t.closest(".rt-pa").dataset.aid; savePool(RT_SEL, curPoolIds(RT_SEL).filter(x=>x!==aidR)); return;
+  if(t.classList.contains("n-save")){
+    var trn=t.closest("tr"); saveEnrich(trn.dataset.ph, trn.querySelector(".n-name").value.trim(), trn.querySelector(".n-bx").value.trim()).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
   }
-  // pool add (available)
-  var av=t.closest(".rt-av");
-  if(av){ var aidA=+av.dataset.aid; savePool(RT_SEL, curPoolIds(RT_SEL).concat([aidA])); return; }
-  // matrix toggle
-  var cell=t.closest(".cell");
-  if(cell){ var cf=+cell.dataset.fid, ca=+cell.dataset.aid, ids2=curPoolIds(cf); savePool(cf, ids2.includes(ca)? ids2.filter(x=>x!==ca) : ids2.concat([ca])); return; }
-  // select form
-  var fi=t.closest(".rt-fi");
-  if(fi){ RT_SEL=+fi.dataset.fid; renderForms(); return; }
-  // backdrop close
+  var fi=t.closest(".rt-fi"); if(fi){ RT_SEL=+fi.dataset.fid; renderForms(); return; }
   var ov=t.closest(".overlay"); if(ov&&t===ov) ov.classList.remove("on");
 });
 function val(id){ var e=document.getElementById(id); return e? e.value.trim() : ""; }
