@@ -94,6 +94,29 @@
   .modal .mbtns { display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
   .modal .mbtns button { border-radius:9px; padding:9px 16px; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--ink); }
   .modal .mbtns .primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  /* routing */
+  .rtabs { display:flex; gap:6px; margin:4px 0 14px; border-bottom:1px solid var(--hair); }
+  .rtab { background:none; border:none; border-bottom:2px solid transparent; color:var(--ink-2);
+    font-weight:600; font-size:13.5px; padding:7px 10px; cursor:pointer; margin-bottom:-1px; }
+  .rtab.on { color:var(--accent-ink); border-bottom-color:var(--accent); }
+  .rt-card { border:1px solid var(--hair); border-radius:10px; padding:11px 13px; margin-bottom:8px; }
+  .rt-card .rh { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .rt-card .nm { font-weight:650; } .rt-card .fid { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); }
+  .rt-card .sp { margin-left:auto; color:var(--muted); font-size:12px; }
+  .rt-card .x { color:var(--err); background:none; border:none; cursor:pointer; font-size:15px; }
+  .rt-row { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+  .rt-row input, .rt-row select { flex:1; min-width:90px; font:inherit; font-size:13px; color:var(--ink);
+    background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 9px; }
+  .rt-row .mono { font-family:ui-monospace,Menlo,monospace; }
+  .rt-add { background:var(--accent); color:#fff; border:1px solid var(--accent); border-radius:8px;
+    padding:7px 14px; font-weight:600; cursor:pointer; font-size:13px; flex:none; }
+  .rt-pool { margin-top:10px; padding-top:10px; border-top:1px solid var(--hair); }
+  .rt-pool .pa { display:flex; gap:8px; align-items:center; font-size:13.5px; padding:4px 0; }
+  .rt-pool .pa input[type=checkbox] { width:auto; } .rt-pool .pa .ord { width:46px; }
+  .rt-pool .pa .pn { flex:1; } .rt-pool .pa .pp { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); }
+  .rt-save { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-weight:600; cursor:pointer; font-size:13px; margin-top:8px; }
+  .rt-recent { font-size:12px; color:var(--muted); margin-top:8px; line-height:1.6; }
+  .rt-empty { color:var(--muted); font-size:13px; padding:14px 0; }
 </style>
 </head>
 <body>
@@ -117,7 +140,7 @@
       <div class="row1"><h1>Links</h1><span class="who"><span id="who-email"></span> · <a id="logout">sign out</a></span></div>
       <input class="search" id="search" type="search" placeholder="Search number or link…" autocomplete="off">
       <label class="chk" style="margin-top:8px;font-size:12px"><input type="checkbox" id="show-hidden"> Show hidden links</label>
-      <div class="abtns"><button id="new-btn">+ New link</button><button id="labels-btn">Labels</button><button id="tpl-btn">Templates</button><button id="hist-btn">History</button></div>
+      <div class="abtns"><button id="new-btn">+ New link</button><button id="routing-btn">Routing</button><button id="labels-btn">Labels</button><button id="tpl-btn">Templates</button><button id="hist-btn">History</button></div>
     </div>
     <div class="filters">
       <div class="flt"><select id="flt-brand"></select></div>
@@ -166,6 +189,16 @@
   They then show up as options in the filters and when editing or creating a link.</p>
   <div id="lbl-sections"></div>
   <div class="mbtns"><button id="lbl-close">Close</button></div>
+</div></div>
+
+<div class="overlay" id="routing-modal"><div class="modal" style="max-width:720px">
+  <h2>Lead Routing</h2>
+  <p class="sub">Meta formlarını danışmanlara bağla. Zapier bir lead gönderince form'un sırası bir ilerler ve
+  sıradaki danışmanın numarası + Bitrix kişi ID'si döner. Buradaki hiçbir ayar mevcut linkleri/numaraları değiştirmez.</p>
+  <div class="rtabs"><button class="rtab on" data-rtab="forms">Formlar</button><button class="rtab" data-rtab="agents">Danışmanlar</button></div>
+  <div id="rt-forms"></div>
+  <div id="rt-agents" hidden></div>
+  <div class="mbtns"><button id="routing-close">Kapat</button></div>
 </div></div>
 
 <div class="overlay" id="hist-modal"><div class="modal" style="max-width:680px">
@@ -557,6 +590,130 @@ function delLabel(kind,value){
   authFetch("/wa_labels?kind=eq."+encodeURIComponent(kind)+"&value=eq."+encodeURIComponent(value),{method:"DELETE"})
     .then(()=>loadLabels()).then(()=>{renderLabels();renderFilters();toast("Removed");}).catch(e=>toast(e.message));
 }
+/* ===== Lead Routing (Formlar + Danışmanlar) ===== */
+var RT_AGENTS=[], RT_FORMS=[], RT_FA=[], RT_CT={}, RT_TAB="forms", RT_OPEN={};
+function loadRouting(){
+  return Promise.all([
+    authFetch("/wa_agents?select=id,name,phone,bitrix_id&order=name").then(r=>r.json()),
+    authFetch("/wa_forms?select=id,form_id,name&order=name").then(r=>r.json()),
+    authFetch("/wa_form_agents?select=form_id,agent_id,sort").then(r=>r.json()),
+    authFetch("/wa_form_counters?select=form_id,n").then(r=>r.json())
+  ]).then(function(res){
+    RT_AGENTS=res[0]||[]; RT_FORMS=res[1]||[]; RT_FA=res[2]||[]; RT_CT={};
+    (res[3]||[]).forEach(function(c){RT_CT[c.form_id]=c.n;});
+  });
+}
+function renderRouting(){
+  document.getElementById("rt-forms").hidden = RT_TAB!=="forms";
+  document.getElementById("rt-agents").hidden = RT_TAB!=="agents";
+  document.querySelectorAll(".rtab").forEach(t=>t.classList.toggle("on",t.dataset.rtab===RT_TAB));
+  if(RT_TAB==="agents") renderRtAgents(); else renderRtForms();
+}
+function openRouting(){
+  document.getElementById("routing-modal").classList.add("on");
+  document.getElementById("rt-forms").innerHTML='<div class="rt-empty">Yükleniyor…</div>';
+  loadRouting().then(renderRouting).catch(e=>toast("Yüklenemedi: "+e.message));
+}
+function renderRtAgents(){
+  var box=document.getElementById("rt-agents");
+  box.innerHTML = (RT_AGENTS.length?RT_AGENTS.map(function(a){
+    return '<div class="rt-card" data-aid="'+a.id+'"><div class="rt-row">'+
+      '<input class="a-name" value="'+esc(a.name)+'" placeholder="Ad">'+
+      '<input class="a-phone mono" value="'+esc(a.phone)+'" placeholder="90…">'+
+      '<input class="a-bitrix mono" value="'+esc(a.bitrix_id||"")+'" placeholder="Bitrix ID">'+
+      '<button class="rt-add a-save">Kaydet</button>'+
+      '<button class="x a-del" title="Sil">✕</button></div></div>';
+  }).join(""):'<div class="rt-empty">Henüz danışman yok.</div>') +
+    '<div class="rt-card"><div class="rh"><span class="nm">+ Yeni danışman</span></div><div class="rt-row">'+
+    '<input id="na-name" placeholder="Ad"><input id="na-phone" class="mono" placeholder="90…">'+
+    '<input id="na-bitrix" class="mono" placeholder="Bitrix ID"><button class="rt-add" id="na-add">Ekle</button></div></div>';
+}
+function renderRtForms(){
+  var box=document.getElementById("rt-forms");
+  box.innerHTML = (RT_FORMS.length?RT_FORMS.map(function(f){
+    var pool=RT_FA.filter(x=>x.form_id===f.id).sort((a,b)=>a.sort-b.sort);
+    var len=pool.length, n=RT_CT[f.id];
+    var nextIdx = len? (n===undefined?0:((n+1)%len)) : null;
+    var nextName = (nextIdx!==null)? (agentName(pool[nextIdx].agent_id)||"?") : "—";
+    var open=!!RT_OPEN[f.id];
+    var detail="";
+    if(open){
+      detail='<div class="rt-pool">'+ RT_AGENTS.map(function(a){
+        var inp=pool.find(p=>p.agent_id===a.id);
+        return '<label class="pa" data-aid="'+a.id+'"><input type="checkbox"'+(inp?" checked":"")+'>'+
+          '<input class="ord mono" type="number" value="'+(inp?inp.sort:100)+'">'+
+          '<span class="pn">'+esc(a.name)+'</span><span class="pp">'+esc(a.phone)+'</span></label>';
+      }).join("") +
+      (RT_AGENTS.length?'<button class="rt-save" data-fid="'+f.id+'">Havuzu kaydet</button>':'<div class="rt-empty">Önce Danışmanlar sekmesinden danışman ekle.</div>')+
+      '<div class="rt-recent" id="rt-recent-'+f.id+'">Son atamalar yükleniyor…</div></div>';
+    }
+    return '<div class="rt-card" data-fid="'+f.id+'"><div class="rh rt-head" style="cursor:pointer">'+
+      '<span class="nm">'+esc(f.name)+'</span><span class="fid">'+esc(f.form_id)+'</span>'+
+      '<span class="sp">havuz '+len+' · sıradaki: '+esc(nextName)+'</span>'+
+      '<button class="x f-del" title="Sil">✕</button></div>'+detail+'</div>';
+  }).join(""):'<div class="rt-empty">Henüz form yok.</div>') +
+    '<div class="rt-card"><div class="rh"><span class="nm">+ Yeni form</span></div><div class="rt-row">'+
+    '<input id="nf-name" placeholder="Form adı"><input id="nf-id" class="mono" placeholder="Meta form ID">'+
+    '<button class="rt-add" id="nf-add">Oluştur</button></div></div>';
+  Object.keys(RT_OPEN).forEach(function(fid){ if(RT_OPEN[fid]) loadRecent(+fid); });
+}
+function agentName(id){var a=RT_AGENTS.find(x=>x.id===id);return a?a.name:null;}
+function loadRecent(fid){
+  var f=RT_FORMS.find(x=>x.id===fid); if(!f) return;
+  authFetch("/wa_lead_log?meta_form_id=eq."+encodeURIComponent(f.form_id)+"&select=agent_name,created_at&order=created_at.desc&limit=8")
+    .then(r=>r.json()).then(function(rows){
+      var el=document.getElementById("rt-recent-"+fid); if(!el) return;
+      el.innerHTML = (rows&&rows.length)? "Son atamalar: "+rows.map(r=>esc(r.agent_name||"?")).join(" · ") : "Henüz atama yok.";
+    }).catch(()=>{});
+}
+function rtReload(){ return loadRouting().then(renderRouting); }
+
+document.getElementById("routing-btn").onclick=openRouting;
+document.getElementById("routing-close").onclick=()=>document.getElementById("routing-modal").classList.remove("on");
+document.querySelectorAll(".rtab").forEach(t=>t.onclick=function(){RT_TAB=this.dataset.rtab;renderRouting();});
+document.getElementById("routing-modal").addEventListener("click",function(e){
+  var head=e.target.closest(".rt-head");
+  if(head){ var fid=+head.parentElement.dataset.fid; RT_OPEN[fid]=!RT_OPEN[fid]; renderRtForms(); return; }
+  var t=e.target;
+  if(t.id==="na-add"){
+    var nm=document.getElementById("na-name").value.trim(), ph=digits(document.getElementById("na-phone").value), bx=document.getElementById("na-bitrix").value.trim();
+    if(!nm||!ph){toast("Ad ve numara gerekli");return;}
+    authFetch("/wa_agents",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({name:nm,phone:ph,bitrix_id:bx||null})})
+      .then(r=>{if(!r.ok)throw new Error("Eklenemedi (numara zaten var olabilir)");return rtReload();}).then(()=>toast("Danışman eklendi")).catch(e=>toast(e.message)); return;
+  }
+  if(t.classList.contains("a-save")){
+    var card=t.closest(".rt-card"), aid=+card.dataset.aid;
+    var body={name:card.querySelector(".a-name").value.trim(),phone:digits(card.querySelector(".a-phone").value),bitrix_id:card.querySelector(".a-bitrix").value.trim()||null};
+    authFetch("/wa_agents?id=eq."+aid,{method:"PATCH",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(body)})
+      .then(r=>{if(!r.ok)throw new Error("Kaydedilemedi");return rtReload();}).then(()=>toast("Kaydedildi")).catch(e=>toast(e.message)); return;
+  }
+  if(t.classList.contains("a-del")){
+    var card2=t.closest(".rt-card"), aid2=+card2.dataset.aid;
+    if(!confirm("Bu danışman silinsin mi? Bağlı olduğu form havuzlarından da çıkar."))return;
+    authFetch("/wa_agents?id=eq."+aid2,{method:"DELETE"}).then(()=>rtReload()).then(()=>toast("Silindi")).catch(e=>toast(e.message)); return;
+  }
+  if(t.id==="nf-add"){
+    var fnm=document.getElementById("nf-name").value.trim(), fid2=document.getElementById("nf-id").value.trim();
+    if(!fnm||!fid2){toast("Form adı ve Meta form ID gerekli");return;}
+    authFetch("/wa_forms",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({name:fnm,form_id:fid2})})
+      .then(r=>{if(!r.ok)throw new Error("Oluşturulamadı (form ID zaten var olabilir)");return rtReload();}).then(()=>toast("Form oluşturuldu")).catch(e=>toast(e.message)); return;
+  }
+  if(t.classList.contains("f-del")){
+    var fcard=t.closest(".rt-card"), fid3=+fcard.dataset.fid;
+    if(!confirm("Bu form silinsin mi? Havuzu ve sırası da silinir (lead geçmişi kalır)."))return;
+    authFetch("/wa_forms?id=eq."+fid3,{method:"DELETE"}).then(()=>{delete RT_OPEN[fid3];return rtReload();}).then(()=>toast("Form silindi")).catch(e=>toast(e.message)); return;
+  }
+  if(t.classList.contains("rt-save")){
+    var fid4=+t.dataset.fid, pool=t.closest(".rt-pool");
+    var sel=[...pool.querySelectorAll(".pa")].filter(p=>p.querySelector("input[type=checkbox]").checked)
+      .map(p=>({form_id:fid4,agent_id:+p.dataset.aid,sort:parseInt(p.querySelector(".ord").value,10)||100}));
+    authFetch("/wa_form_agents?form_id=eq."+fid4,{method:"DELETE"})
+      .then(()=> sel.length? authFetch("/wa_form_agents",{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(sel)}):Promise.resolve())
+      .then(()=>rtReload()).then(()=>toast("Havuz kaydedildi")).catch(e=>toast(e.message)); return;
+  }
+  var ov=e.target.closest(".overlay"); if(ov&&e.target===ov)ov.classList.remove("on");
+});
+
 document.getElementById("labels-btn").onclick=function(){renderLabels();document.getElementById("lbl-modal").classList.add("on");};
 document.getElementById("lbl-close").onclick=()=>document.getElementById("lbl-modal").classList.remove("on");
 document.getElementById("show-hidden").addEventListener("change",function(){SHOW_HIDDEN=this.checked;renderList();});
